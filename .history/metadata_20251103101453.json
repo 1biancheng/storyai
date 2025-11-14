@@ -1,0 +1,6 @@
+{
+  "name": "Story AI",
+  "description": "AI-powered story writing system with multi-agent support.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}

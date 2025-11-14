@@ -1,0 +1,257 @@
+项目技术规范
+AI驱动应用的SSE、缓存与数据库最佳实践指南
+
+技术栈
+SSE
+sse-starlette
+缓存
+Redis + LRU
+数据库
+PostgreSQL
+向量
+pgvector
+ 引言
+本技术规范旨在为项目中的所有AI智能体提供一个统一、明确且高效的技术实施蓝图.其核心目标是确保在实时通信、数据缓存、数据库交互及AI服务集成等关键领域,所有生成的代码都遵循一套经过验证的最佳实践.
+
+ 规范目的
+提升系统的可靠性、性能、可维护性和安全性
+减少技术选型不一致引入的潜在缺陷
+确保项目技术栈的高度一致性
+ 适用范围
+实时通信(SSE)
+数据缓存(LRU + Redis)
+数据库与向量检索
+AI服务集成
+跨域通信(CORS)
+核心原则与目标
+可靠性
+通过统一的错误处理和资源管理,确保系统在各种异常情况下都能稳定运行
+
+性能
+采用异步编程、高效缓存和优化的数据库查询,最大化系统吞吐量
+
+可维护性
+通过清晰的代码结构和一致的实现模式,降低维护成本和学习曲线
+
+ 关键术语定义
+SSE:
+Server-Sent Events,基于HTTP的服务器推送技术
+CORS:
+Cross-Origin Resource Sharing,跨域资源共享
+LRU:
+Least Recently Used,最近最少使用缓存算法
+pgvector:
+PostgreSQL向量数据存储和查询扩展
+HNSW:
+Hierarchical Navigable Small World,图索引算法
+IVFFlat:
+Inverted File with Flat Compression,聚类索引算法
+实时通信:Server-Sent Events
+ 服务端实现 (sse-starlette)
+核心组件:EventSourceResponse
+项目强制要求使用 sse-starlette 库提供的 EventSourceResponse 类作为唯一的SSE服务端实现[3].该组件基于异步生成器模式,将事件流的生产逻辑与HTTP传输层解耦.
+
+from sse_starlette import EventSourceResponse
+from fastapi import Request
+
+async def event_generator(request: Request):
+    try:
+        while True:
+            # 检查客户端是否断开连接
+            if await request.is_disconnected():
+                break
+            
+            # 生成事件数据
+            data = await get_next_event()
+            yield {"data": json.dumps(data)}
+            
+            await asyncio.sleep(1)
+    except asyncio.CancelledError:
+        # 清理资源
+        await cleanup_resources()
+
+@app.get("/sse-endpoint")
+async def sse_endpoint(request: Request):
+    return EventSourceResponse(
+        event_generator(request),
+        ping=15,  # 心跳间隔15秒
+        headers={"Cache-Control": "no-cache"}
+    )
+连接生命周期管理
+• 定期检查 request.is_disconnected()
+• 捕获 asyncio.CancelledError 异常
+• 及时清理资源,防止僵尸任务
+心跳与超时策略
+• 统一心跳间隔:15秒
+• 设置发送超时 send_timeout=30
+• 防止网络中间件关闭连接
+ 客户端实现 (原生 EventSource)
+function subscribeSSE(url, handlers) {
+    const eventSource = new EventSource(url);
+    
+    // 标准消息处理
+    eventSource.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            handlers.onMessage(data);
+        } catch (e) {
+            handlers.onMessage(event.data);
+        }
+    };
+    
+    // 自定义事件处理
+    if (handlers.onCustomEvent) {
+        eventSource.addEventListener('custom_event', handlers.onCustomEvent);
+    }
+    
+    // 错误处理
+    eventSource.onerror = (error) => {
+        handlers.onError(error);
+        eventSource.close();
+    };
+    
+    return eventSource;
+}
+ 重要注意事项
+• 避免多连接限制:浏览器对同源HTTP/1.1连接数限制约为6个
+• 谨慎使用withCredentials:会触发更严格的CORS预检,增加CSRF风险
+• 统一错误处理:通过 event: error 格式传递结构化错误信息
+数据缓存策略
+ 本地缓存 (LRU)
+适用场景
+静态或变化频率极低的配置数据和元数据,如应用版本信息、业务规则、配置项等.
+
+参数配置
+• maxsize: 建议128-512
+• 参数必须可哈希
+• 避免缓存依赖可变状态
+ 分布式缓存 (Redis)
+连接配置
+使用 aioredis.from_url,指定 encoding='utf-8' 和 decode_responses=True
+
+数据策略
+• 统一使用JSON序列化
+• TTL建议60-600秒
+• 封装 cache_get/cache_set
+ 高并发下的热点键问题
+分片策略
+将热点key拆分为多个子key,分散访问压力
+
+随机TTL
+基础TTL + 随机值,避免缓存雪崩
+
+互斥锁
+防止缓存击穿,保证单线程重建缓存
+
+数据库与向量检索
+ 异步数据库栈 (PostgreSQL)
+连接池管理
+SQLAlchemy AsyncEngine + psycopg async驱动
+使用 psycopg_pool.AsyncConnectionPool
+应用启动时 await pool.open()
+会话管理
+AsyncSession不是线程安全的
+遵循"每任务一个Session"原则
+设置 expire_on_commit=False
+ 向量检索 (pgvector)
+数据建模与DDL
+-- 启用pgvector扩展
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- 创建向量表
+CREATE TABLE documents (
+    id BIGSERIAL PRIMARY KEY,
+    content TEXT NOT NULL,
+    embedding VECTOR(1536) NOT NULL  -- 维度匹配嵌入模型
+);
+
+-- 创建HNSW索引
+CREATE INDEX ON documents 
+USING hnsw (embedding vector_cosine_ops)
+WITH (m = 16, ef_construction = 128);
+索引类型选择
+特性	HNSW	IVFFlat
+算法类型	基于图的算法	基于聚类的算法
+查询性能	高	中等
+内存占用	较高	较低
+动态更新	支持	敏感
+适用场景	动态数据,高召回率要求	静态数据,大规模数据集
+ HNSW参数调优建议
+m: 16-32 (高维向量推荐16)
+ef_construction: 64-128 (追求高召回率可设128+)
+ef_search: 查询时设置,平衡召回率与速度
+CORS 与跨域安全
+ 严格禁止
+Access-Control-Allow-Origin: * - 生产环境禁用通配符
+依赖Origin头认证 - 可被轻易伪造
+过度暴露响应头 - 最小权限原则
+ 推荐做法
+明确白名单 - 开发环境 http://localhost:3001
+Token认证 - 使用Bearer Token或JWT
+合理Max-Age - 缓存预检请求结果
+ 预检请求处理
+如果SSE请求需要自定义HTTP头(如认证头),浏览器会自动发起OPTIONS预检请求.服务端必须正确处理:
+
+@app.options("/sse-endpoint")
+async def preflight():
+    return Response(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "https://app.example.com",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Authorization, Content-Type",
+            "Access-Control-Max-Age": "86400"
+        }
+    )
+AI 服务集成与流式输出
+ 服务封装策略
+为了屏蔽不同AI模型和API提供商的差异,项目要求将所有AI交互逻辑统一封装在独立的服务层,例如 services/ai_service.py.
+
+关注点分离
+业务逻辑无需关心底层API调用细节
+
+可扩展性
+更换AI模型时只需修改服务层实现
+
+健壮性
+统一的重试、熔断和监控机制
+
+ 流式输出协议
+统一消息格式
+{
+    "type": "content",  // content, error, finish
+    "delta": "增量内容",
+    "finish_reason": "stop"  // stop, length, content_filter
+}
+ 错误处理机制
+服务端错误包装
+event: error
+data: {"code": "AI_SERVICE_TIMEOUT", 
+       "message": "AI服务暂时不可用"}
+前端兜底处理
+• 显示友好的错误提示
+• 提供重试机制
+• 记录错误日志
+部署与交付
+ 前端开发规范
+Vite开发服务器 - 本地预览和热更新
+职责分离 - UI组件仅负责展示和交互
+充分验证 - 所有可视化改动必须本地测试
+状态管理 - 数据流在hooks/services中处理
+ 后端API文档
+SSE事件结构 - 详细说明所有事件类型和载荷
+心跳策略 - 明确心跳间隔和连接状态
+错误处理 - 提供客户端处理示例
+统一错误格式 - {code, message}结构
+ 依赖管理策略
+ 严禁引入
+与 sse-starlette 功能冲突的SSE库
+重复的缓存实现库
+未经验证的大型依赖包
+ 审查要求
+新增依赖的必要性说明
+评估对项目复杂性的影响
+考虑安全性和维护成本
+ 总结
+本技术规范为AI驱动应用提供了全面的技术实施蓝图.
+通过严格执行这些标准,我们能够确保系统在实时通信、数据缓存、数据库交互和AI服务集成等关键领域保持高度的一致性、可靠性和性能.这对于约束AI编辑器中的智能体、指导开发实践以及维护长期的技术债务管理都具有重要意义.

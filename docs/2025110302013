@@ -1,0 +1,175 @@
+// PromptCardPanel.tsx
+import React, { useState } from 'react';
+import { PromptCard } from '../types';
+
+interface PromptCardPanelProps {
+  promptCards: PromptCard[];
+  onClose: () => void;
+  onSelectCard: (card: PromptCard) => void;
+  onAddCard: (card: PromptCard) => void;
+}
+
+const PromptCardPanel: React.FC<PromptCardPanelProps> = ({
+  promptCards,
+  onClose,
+  onSelectCard,
+  onAddCard
+}) => {
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newCard, setNewCard] = useState({
+    title: '',
+    content: '',
+    tags: [] as string[]
+  });
+
+  const availableTags = ['角色', '设定', '情节', '发展', '环境', '描写', '对话', '分析'];
+
+  const handleTagSelect = (tag: string) => {
+    if (selectedTags.includes(tag)) {
+      setSelectedTags(selectedTags.filter(t => t !== tag));
+    } else {
+      setSelectedTags([...selectedTags, tag]);
+    }
+  };
+
+  const handleCreateCard = () => {
+    if (newCard.title.trim() && newCard.content.trim()) {
+      const card: PromptCard = {
+        id: Date.now().toString(),
+        title: newCard.title,
+        content: newCard.content,
+        tags: newCard.tags,
+        createdAt: new Date().toISOString()
+      };
+      onAddCard(card);
+      setNewCard({ title: '', content: '', tags: [] });
+      setShowCreateForm(false);
+    }
+  };
+
+  const filteredCards = promptCards.filter(card => {
+    if (selectedTags.length === 0) return true;
+    return selectedTags.every(tag => card.tags.includes(tag));
+  });
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content prompt-card-panel">
+        <div className="modal-header">
+          <h3>提示词卡片</h3>
+          <button className="btn btn-close" onClick={onClose}>
+            ×
+          </button>
+        </div>
+        
+        <div className="prompt-card-controls">
+          <div className="tag-filters">
+            <h4>筛选标签</h4>
+            <div className="tag-list">
+              {availableTags.map(tag => (
+                <button
+                  key={tag}
+                  className={`tag-btn ${selectedTags.includes(tag) ? 'active' : ''}`}
+                  onClick={() => handleTagSelect(tag)}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <button 
+            className="btn btn-primary"
+            onClick={() => setShowCreateForm(true)}
+          >
+            + 创建新卡片
+          </button>
+        </div>
+        
+        {showCreateForm ? (
+          <div className="create-card-form">
+            <h4>创建新提示词卡片</h4>
+            <input
+              type="text"
+              placeholder="卡片标题"
+              value={newCard.title}
+              onChange={(e) => setNewCard({ ...newCard, title: e.target.value })}
+            />
+            <textarea
+              placeholder="卡片内容"
+              value={newCard.content}
+              onChange={(e) => setNewCard({ ...newCard, content: e.target.value })}
+              rows={4}
+            />
+            <div className="tag-selection">
+              <h5>选择标签</h5>
+              <div className="tag-list">
+                {availableTags.map(tag => (
+                  <button
+                    key={tag}
+                    className={`tag-btn ${newCard.tags.includes(tag) ? 'active' : ''}`}
+                    onClick={() => {
+                      if (newCard.tags.includes(tag)) {
+                        setNewCard({
+                          ...newCard,
+                          tags: newCard.tags.filter(t => t !== tag)
+                        });
+                      } else {
+                        setNewCard({
+                          ...newCard,
+                          tags: [...newCard.tags, tag]
+                        });
+                      }
+                    }}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="form-actions">
+              <button className="btn btn-secondary" onClick={() => setShowCreateForm(false)}>
+                取消
+              </button>
+              <button className="btn btn-primary" onClick={handleCreateCard}>
+                创建卡片
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="prompt-cards-grid">
+            {filteredCards.map(card => (
+              <div 
+                key={card.id} 
+                className="prompt-card-item"
+                onClick={() => onSelectCard(card)}
+              >
+                <div className="card-header">
+                  <h4>{card.title}</h4>
+                  <div className="card-tags">
+                    {card.tags.map(tag => (
+                      <span key={tag} className="tag">{tag}</span>
+                    ))}
+                  </div>
+                </div>
+                <div className="card-content">
+                  {card.content.substring(0, 100)}
+                  {card.content.length > 100 && '...'}
+                </div>
+                <div className="card-footer">
+                  <span className="card-date">
+                    {new Date(card.createdAt).toLocaleDateString()}
+                  </span>
+                  <button className="btn btn-use">使用</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default PromptCardPanel;

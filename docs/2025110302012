@@ -1,0 +1,130 @@
+// FileUploadPanel.tsx
+import React, { useState, useRef } from 'react';
+
+interface FileUploadPanelProps {
+  onClose: () => void;
+  onUpload: (files: FileList) => void;
+}
+
+const FileUploadPanel: React.FC<FileUploadPanelProps> = ({ onClose, onUpload }) => {
+  const [dragActive, setDragActive] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const files = Array.from(e.dataTransfer.files);
+      setUploadedFiles(prev => [...prev, ...files]);
+    }
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files);
+      setUploadedFiles(prev => [...prev, ...files]);
+    }
+  };
+
+  const handleUpload = () => {
+    if (uploadedFiles.length > 0) {
+      onUpload(new DataTransfer().files);
+      setUploadedFiles([]);
+      onClose();
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content file-upload-panel">
+        <div className="modal-header">
+          <h3>上传文件</h3>
+          <button className="btn btn-close" onClick={onClose}>
+            ×
+          </button>
+        </div>
+        
+        <div 
+          className={`upload-area ${dragActive ? 'drag-active' : ''}`}
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+        >
+          <div className="upload-icon">📁</div>
+          <p>拖拽文件到此处上传</p>
+          <p>或</p>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileInput}
+            multiple
+            style={{ display: 'none' }}
+          />
+          <button 
+            className="btn btn-primary"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            选择文件
+          </button>
+        </div>
+        
+        {uploadedFiles.length > 0 && (
+          <div className="file-list">
+            <h4>已选择的文件 ({uploadedFiles.length})</h4>
+            <ul>
+              {uploadedFiles.map((file, index) => (
+                <li key={index}>
+                  <span className="file-name">{file.name}</span>
+                  <span className="file-size">{formatFileSize(file.size)}</span>
+                  <button 
+                    className="btn btn-remove"
+                    onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== index))}
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        
+        <div className="modal-footer">
+          <button className="btn btn-secondary" onClick={onClose}>
+            取消
+          </button>
+          <button 
+            className="btn btn-primary" 
+            onClick={handleUpload}
+            disabled={uploadedFiles.length === 0}
+          >
+            上传 ({uploadedFiles.length} 个文件)
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default FileUploadPanel;

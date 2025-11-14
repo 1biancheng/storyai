@@ -1,0 +1,2 @@
+ANSI(Windows-1252) ,:€,.
+Second line with symbols: © ® ™

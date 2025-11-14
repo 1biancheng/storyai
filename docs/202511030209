@@ -1,0 +1,450 @@
+// enhancedApp.tsx
+import React, { useState, useEffect, useRef, DragEvent } from 'react';
+import ProjectList from './components/ProjectList';
+import ChapterList from './components/ChapterList';
+import Editor from './components/Editor';
+import AIChatPanel from './components/AIChatPanel';
+import PromptCardPanel from './components/PromptCardPanel';
+import FileUploadPanel from './components/FileUploadPanel';
+import { Project, Chapter, AIModel, PromptCard, Conversation, UploadFile, WritingTool } from './types';
+
+const EnhancedApp: React.FC = () => {
+  // 模拟数据
+  const [projects, setProjects] = useState<Project[]>([
+    { id: '1', name: '我的第一本小说', createdAt: '2023-01-01', updatedAt: '2023-01-05' },
+    { id: '2', name: '科幻冒险故事', createdAt: '2023-02-15', updatedAt: '2023-02-20' },
+  ]);
+  
+  const [chapters, setChapters] = useState<Chapter[]>([
+    { id: '1', projectId: '1', title: '第一章', content: '', createdAt: '2023-01-02', updatedAt: '2023-01-03', wordCount: 0 },
+    { id: '2', projectId: '1', title: '第二章', content: '', createdAt: '2023-01-04', updatedAt: '2023-01-05', wordCount: 0 },
+    { id: '3', projectId: '2', title: '第一章', content: '', createdAt: '2023-02-16', updatedAt: '2023-02-17', wordCount: 0 },
+  ]);
+  
+  const [models, setModels] = useState<AIModel[]>([
+    { id: 'kimi-k2-0905-prev', name: 'Kimi K2-0905-preview', provider: 'Moonshot AI', description: '最新预览版模型' },
+    { id: 'gpt-4', name: 'GPT-4', provider: 'OpenAI', description: '强大的通用语言模型' },
+    { id: 'claude-3', name: 'Claude 3', provider: 'Anthropic', description: '注重安全和伦理的AI模型' },
+  ]);
+  
+  const [promptCards, setPromptCards] = useState<PromptCard[]>([
+    { id: '1', title: '角色设定', content: '请为我创造一个性格鲜明的角色，包括姓名、外貌、背景故事等。', tags: ['角色', '设定'], createdAt: '2023-01-01' },
+    { id: '2', title: '情节发展', content: '请根据当前剧情，提供3个可能的发展方向，并简要描述每个方向的后果。', tags: ['情节', '发展'], createdAt: '2023-01-02' },
+    { id: '3', title: '环境描写', content: '请详细描写一个神秘森林的场景，包括视觉、听觉、嗅觉等感官体验。', tags: ['环境', '描写'], createdAt: '2023-01-03' },
+  ]);
+  
+  const [writingTools, setWritingTools] = useState<WritingTool[]>([
+    { id: '1', name: '大纲生成', description: '根据现有内容生成章节大纲', icon: '📋', category: '创作辅助' },
+    { id: '2', name: '角色检查', description: '检查角色一致性和逻辑性', icon: '👤', category: '角色管理' },
+    { id: '3', name: '情节分析', description: '分析故事情节的连贯性', icon: '📊', category: '情节分析' },
+    { id: '4', name: '润色建议', description: '提供文字润色和风格建议', icon: '✨', category: '文本处理' },
+  ]);
+  
+  const [conversations, setConversations] = useState<Conversation[]>([
+    {
+      id: '1',
+      projectId: '1',
+      chapterId: '1',
+      modelId: 'kimi-k2-0905-prev',
+      memoryMode: 'short',
+      messages: [
+        { id: '1', role: 'user', content: '请帮我续写这个故事：他站在悬崖边，看着远方的山脉...', createdAt: '2023-01-03' },
+        { id: '2', role: 'assistant', content: '手，又看了看两侧无尽的石门。他明白了。这里不是终点，甚至不是起点。这里是一个巨大的"钓台"。而他，既是咬钩的饵，也是被钓者派出的......新的钓者。', createdAt: '2023-01-03' },
+      ],
+      createdAt: '2023-01-03',
+      updatedAt: '2023-01-03'
+    }
+  ]);
+  
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const [isWriting, setIsWriting] = useState(false);
+  const [showFileUpload, setShowFileUpload] = useState(false);
+  const [showPromptCards, setShowPromptCards] = useState(false);
+  const [draggedChapter, setDraggedChapter] = useState<Chapter | null>(null);
+  
+  // 获取当前选中的项目、章节和对话
+  const currentProject = projects.find(p => p.id === selectedProjectId) || null;
+  const currentChapter = chapters.find(c => c.id === selectedChapterId) || null;
+  const currentConversation = conversations.find(c => c.id === selectedConversationId) || null;
+  
+  // 处理项目相关操作
+  const handleSelectProject = (id: string) => {
+    setSelectedProjectId(id);
+    setSelectedChapterId(null);
+    setSelectedConversationId(null);
+  };
+  
+  const handleCreateProject = () => {
+    const newProject: Project = {
+      id: Date.now().toString(),
+      name: `新项目${projects.length + 1}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    setProjects([...projects, newProject]);
+    setSelectedProjectId(newProject.id);
+  };
+  
+  const handleAddChapter = (projectId: string) => {
+    const newChapter: Chapter = {
+      id: Date.now().toString(),
+      projectId: projectId,
+      title: `新章节${chapters.filter(c => c.projectId === projectId).length + 1}`,
+      content: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      wordCount: 0,
+      linkedContents: []
+    };
+    setChapters([...chapters, newChapter]);
+    setSelectedChapterId(newChapter.id);
+    
+    // 创建新的对话
+    const newConversation: Conversation = {
+      id: Date.now().toString(),
+      projectId: projectId,
+      chapterId: newChapter.id,
+      modelId: models[0].id,
+      memoryMode: 'none',
+      messages: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    setConversations([...conversations, newConversation]);
+    setSelectedConversationId(newConversation.id);
+  };
+  
+  // 处理章节相关操作
+  const handleSelectChapter = (id: string) => {
+    setSelectedChapterId(id);
+    
+    // 查找对应的对话
+    const chapter = chapters.find(c => c.id === id);
+    if (chapter) {
+      const conversation = conversations.find(c => c.chapterId === id);
+      if (conversation) {
+        setSelectedConversationId(conversation.id);
+      } else {
+        // 如果没有对应对话，创建一个新的
+        const newConversation: Conversation = {
+          id: Date.now().toString(),
+          projectId: chapter.projectId,
+          chapterId: id,
+          modelId: models[0].id,
+          memoryMode: 'none',
+          messages: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        setConversations([...conversations, newConversation]);
+        setSelectedConversationId(newConversation.id);
+      }
+    }
+  };
+  
+  const handleBatchDelete = () => {
+    if (selectedProjectId) {
+      const updatedChapters = chapters.filter(c => c.projectId !== selectedProjectId);
+      setChapters(updatedChapters);
+      setSelectedChapterId(null);
+    }
+  };
+  
+  // 拖拽排序功能
+  const handleDragStart = (e: DragEvent, chapter: Chapter) => {
+    e.dataTransfer.setData('text/plain', chapter.id);
+    setDraggedChapter(chapter);
+  };
+  
+  const handleDragOver = (e: DragEvent) => {
+    e.preventDefault();
+  };
+  
+  const handleDrop = (e: DragEvent, targetChapterId: string) => {
+    e.preventDefault();
+    const sourceChapterId = e.dataTransfer.getData('text/plain');
+    
+    if (sourceChapterId !== targetChapterId && draggedChapter) {
+      // 重新排序章节数组
+      const chaptersCopy = [...chapters];
+      const sourceIndex = chaptersCopy.findIndex(c => c.id === sourceChapterId);
+      const targetIndex = chaptersCopy.findIndex(c => c.id === targetChapterId);
+      
+      if (sourceIndex !== -1 && targetIndex !== -1) {
+        const [removed] = chaptersCopy.splice(sourceIndex, 1);
+        chaptersCopy.splice(targetIndex, 0, removed);
+        setChapters(chaptersCopy);
+      }
+    }
+    setDraggedChapter(null);
+  };
+  
+  const handleAddFileToProject = (files: FileList) => {
+    if (selectedProjectId) {
+      const updatedProjects = projects.map(project => {
+        if (project.id === selectedProjectId) {
+          const newFiles: UploadFile[] = Array.from(files).map((file, index) => ({
+            id: `file-${Date.now()}-${index}`,
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            uploadedAt: new Date().toISOString()
+          }));
+          
+          return {
+            ...project,
+            uploadFiles: [...(project.uploadFiles || []), ...newFiles],
+            updatedAt: new Date().toISOString()
+          };
+        }
+        return project;
+      });
+      setProjects(updatedProjects);
+    }
+  };
+  
+  const handleAddPromptCard = (card: PromptCard) => {
+    if (selectedProjectId) {
+      const newCard: PromptCard = {
+        ...card,
+        id: Date.now().toString(),
+        createdAt: new Date().toISOString(),
+        projectId: selectedProjectId
+      };
+      setPromptCards([...promptCards, newCard]);
+    }
+  };
+  
+  const handleLinkContent = (content: LinkedContent) => {
+    if (currentChapter) {
+      const updatedChapter = {
+        ...currentChapter,
+        linkedContents: [...(currentChapter.linkedContents || []), content],
+        updatedAt: new Date().toISOString()
+      };
+      const updatedChapters = chapters.map(c => 
+        c.id === currentChapter.id ? updatedChapter : c
+      );
+      setChapters(updatedChapters);
+    }
+  };
+  
+  // 处理编辑器相关操作
+  const handleSaveContent = (content: string) => {
+    if (currentChapter) {
+      const updatedChapter = {
+        ...currentChapter,
+        content,
+        updatedAt: new Date().toISOString(),
+        wordCount: content.length
+      };
+      const updatedChapters = chapters.map(c => 
+        c.id === currentChapter.id ? updatedChapter : c
+      );
+      setChapters(updatedChapters);
+    }
+  };
+  
+  const handleContinueWriting = (instruction: string) => {
+    setIsWriting(true);
+    // 模拟AI生成内容
+    setTimeout(() => {
+      if (currentChapter) {
+        const newContent = currentChapter.content + '\n\n' + 'AI生成的内容：这是由AI继续写的内容，用于演示功能。';
+        const updatedChapter = {
+          ...currentChapter,
+          content: newContent,
+          updatedAt: new Date().toISOString(),
+          wordCount: newContent.length
+        };
+        const updatedChapters = chapters.map(c => 
+          c.id === currentChapter.id ? updatedChapter : c
+        );
+        setChapters(updatedChapters);
+      }
+      setIsWriting(false);
+    }, 2000);
+  };
+  
+  const handleStopWriting = () => {
+    setIsWriting(false);
+  };
+  
+  // 处理对话相关操作
+  const handleNewConversation = () => {
+    if (selectedProjectId && selectedChapterId) {
+      const newConversation: Conversation = {
+        id: Date.now().toString(),
+        projectId: selectedProjectId,
+        chapterId: selectedChapterId,
+        modelId: models[0].id,
+        memoryMode: 'none',
+        messages: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      setConversations([...conversations, newConversation]);
+      setSelectedConversationId(newConversation.id);
+    }
+  };
+  
+  const handleSendMessage = (message: string) => {
+    if (currentConversation && selectedChapterId) {
+      const newMessage: Message = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: message,
+        createdAt: new Date().toISOString()
+      };
+      
+      const updatedMessages = [...currentConversation.messages, newMessage];
+      const updatedConversation = {
+        ...currentConversation,
+        messages: updatedMessages,
+        updatedAt: new Date().toISOString()
+      };
+      
+      const updatedConversations = conversations.map(c => 
+        c.id === currentConversation.id ? updatedConversation : c
+      );
+      setConversations(updatedConversations);
+      
+      // 模拟AI回复
+      setTimeout(() => {
+        const aiResponse: Message = {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: '这是AI的回复内容，用于演示功能。',
+          createdAt: new Date().toISOString()
+        };
+        
+        const updatedMessagesWithAI = [...updatedMessages, aiResponse];
+        const updatedConversationWithAI = {
+          ...updatedConversation,
+          messages: updatedMessagesWithAI,
+          updatedAt: new Date().toISOString()
+        };
+        
+        const updatedConversationsWithAI = conversations.map(c => 
+          c.id === currentConversation.id ? updatedConversationWithAI : c
+        );
+        setConversations(updatedConversationsWithAI);
+      }, 1000);
+    }
+  };
+  
+  const handleModelChange = (modelId: string) => {
+    if (currentConversation) {
+      const updatedConversation = {
+        ...currentConversation,
+        modelId,
+        updatedAt: new Date().toISOString()
+      };
+      const updatedConversations = conversations.map(c => 
+        c.id === currentConversation.id ? updatedConversation : c
+      );
+      setConversations(updatedConversations);
+    }
+  };
+  
+  const handleMemoryModeChange = (mode: 'none' | 'short' | 'long') => {
+    if (currentConversation) {
+      const updatedConversation = {
+        ...currentConversation,
+        memoryMode: mode,
+        updatedAt: new Date().toISOString()
+      };
+      const updatedConversations = conversations.map(c => 
+        c.id === currentConversation.id ? updatedConversation : c
+      );
+      setConversations(updatedConversations);
+    }
+  };
+  
+  return (
+    <div className="app-container">
+      {/* 左侧项目列表 */}
+      <div className="sidebar-left">
+        <ProjectList
+          projects={projects}
+          selectedProjectId={selectedProjectId}
+          onSelectProject={handleSelectProject}
+          onCreateProject={handleCreateProject}
+          onAddChapter={handleAddChapter}
+          onShowFileUpload={() => setShowFileUpload(true)}
+          onShowPromptCards={() => setShowPromptCards(true)}
+        />
+        
+        {selectedProjectId && (
+          <ChapterList
+            chapters={chapters.filter(c => c.projectId === selectedProjectId)}
+            selectedChapterId={selectedChapterId}
+            onSelectChapter={handleSelectChapter}
+            onBatchDelete={handleBatchDelete}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+          />
+        )}
+      </div>
+      
+      {/* 中间编辑区 */}
+      <div className="main-content">
+        <Editor
+          chapter={currentChapter}
+          onSave={handleSaveContent}
+          onContinueWriting={handleContinueWriting}
+          onStopWriting={handleStopWriting}
+          isWriting={isWriting}
+          writingTools={writingTools}
+          onApplyTool={(toolId) => {
+            console.log('应用工具:', toolId);
+          }}
+        />
+      </div>
+      
+      {/* 右侧AI对话区 */}
+      <div className="sidebar-right">
+        <AIChatPanel
+          conversation={currentConversation}
+          models={models}
+          promptCards={promptCards}
+          onSendMessage={handleSendMessage}
+          onNewConversation={handleNewConversation}
+          onModelChange={handleModelChange}
+          onMemoryModeChange={handleMemoryModeChange}
+          onLinkContent={handleLinkContent}
+          onAddPromptCard={() => setShowPromptCards(true)}
+        />
+      </div>
+      
+      {/* 文件上传弹窗 */}
+      {showFileUpload && (
+        <FileUploadPanel
+          onClose={() => setShowFileUpload(false)}
+          onUpload={handleAddFileToProject}
+        />
+      )}
+      
+      {/* 提示词卡片弹窗 */}
+      {showPromptCards && (
+        <PromptCardPanel
+          promptCards={promptCards}
+          onClose={() => setShowPromptCards(false)}
+          onSelectCard={(card) => {
+            console.log('选择提示词卡片:', card);
+            setShowPromptCards(false);
+          }}
+          onAddCard={(card) => {
+            handleAddPromptCard(card);
+            setShowPromptCards(false);
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+export default EnhancedApp;

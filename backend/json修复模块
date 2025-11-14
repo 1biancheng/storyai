@@ -1,0 +1,70 @@
+修复损坏的 JSON 文件可以通过使用专门的工具或库来完成,例如 json-repair.以下是如何使用该工具修复无效 JSON 的详细步骤.
+
+安装 json-repair
+
+首先,确保安装了 json-repair Python 模块.运行以下命令:
+
+pip install json-repair
+
+修复 JSON 字符串
+
+使用 json-repair 修复损坏的 JSON 字符串:
+
+from json_repair import repair_json
+
+# 示例:损坏的 JSON 字符串
+bad_json_string = '{"name": "John", "age": 30, "city": "New York'
+
+# 修复后的 JSON 字符串
+good_json_string = repair_json(bad_json_string)
+print(good_json_string)
+
+输出:
+
+{"name": "John", "age": 30, "city": "New York"}
+
+替代 json.loads()
+
+json-repair 可以完全替代标准的 json.loads() 方法:
+
+import json_repair
+
+# 使用 json_repair 加载 JSON 对象
+decoded_object = json_repair.loads(bad_json_string)
+print(decoded_object)
+
+# 输出:
+# {'name': 'John', 'age': 30, 'city': 'New York'}   
+
+处理非拉丁字符
+
+如果 JSON 包含非拉丁字符(如中文),可以通过设置 ensure_ascii=False 来保留原始字符:
+
+repaired_json = repair_json("{'test_chinese_ascii':'统一码'}", ensure_ascii=False)
+print(repaired_json)
+
+输出:
+
+{"test_chinese_ascii": "统一码"}
+
+命令行修复
+
+也可以直接在命令行中修复 JSON 文件:
+
+json_repair -i input.json -o output.json --indent 4
+
+最佳实践
+
+错误处理:在修复过程中添加异常捕获机制,确保程序稳定运行.
+
+性能优化:对于大型文件,考虑分块处理或流式处理以提高效率.
+
+通过以上方法,您可以轻松修复损坏的 JSON 数据并确保其格式正确.
+
+了解详细信息:
+1 -
+blog.csdn.net
+2 -
+pypi.org
+3 -
+docs.feishu.cn

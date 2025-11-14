@@ -1,0 +1,4 @@
+{
+  "text": "Hello world. This is a test paragraph. Another sentence to form a paragraph.",
+  "embeddingModel": "text-embedding-3-small"
+}

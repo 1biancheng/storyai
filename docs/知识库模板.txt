@@ -1,0 +1,83 @@
+toolName: ApplyPatch
+            
+status: running
+          
+          
+
+        
+            
+toolName: edit_file_update
+            
+status: success
+          
+            
+filePath: d:\story-ai (3)\sample_data/services/toolRegistry.ts
+          
+changes: 
+          
+**目录结构**
+- 基础路径：`workspace/materials/{projectId}/{category}/{subcategory?}`
+- 分类建议：`character` 人物、`environment` 环境、`action` 动作、`emotion` 情绪、`dialogue` 对话、`scene` 场景、`object` 物件、`setting` 设定、`theme` 主题、`imagery` 意象
+- 子分类示例：
+  - `character/外貌|姿态|心理|身份`
+  - `environment/自然|城市|室内|天气|时间`
+  - `action/日常|战斗|追逐|职业`
+  - `emotion/喜悦|愤怒|悲伤|恐惧|羞耻|复杂`
+  - `dialogue/冲突|铺垫|揭秘|安慰|幽默|套路`
+  - `scene/开场|高潮|转折|收束|悬念`
+- 文件命名：`{slug}.json`，例如 `workspace/materials/{projectId}/character/外貌/眼神.json`
+
+**素材文件格式**
+- 每个文件内容为 JSON，推荐字段：
+  - `title`: 素材标题
+  - `content`: 素材正文（可多段）
+  - `tags`: 关键词数组
+  - `type`: 分类（如 `character`）
+  - `subtype`: 子分类（如 `外貌`）
+  - `updatedAt`: 时间戳
+- 可选扩展：
+  - `examples`: 示例数组
+  - `constraints`: 使用注意项
+  - `tone`: 语气/风格指示
+
+**工具增强**
+- `knowledge_base` 扩展
+  - 支持参数：`projectId`, `category`, `subcategory`, `query`
+  - 章节素材读取：`GET /api/v1/chapters/project/{projectId}`
+  - 分类素材读取：遍历 `workspace/materials/{projectId}/{category}/{subcategory?}` 下的 `.json`
+  - 返回结构：`{ projectId, category, query, items: [...] }`，每条含 `id/title/content/tags/updatedAt/category/subcategory/sourcePath`
+- 严格结构化输出
+  - 在 GPT-4/Gemini 机型启用 `response_format: json_schema + strict`
+  - 工具调用完成后，统一要求输出 `{ answer: string, tools: any[] }` 的 JSON
+
+**如何落地**
+- 创建示例路径
+  - `workspace/materials/{projectId}/character/外貌/眼神.json`
+  - `workspace/materials/{projectId}/environment/天气/暴雨.json`
+  - `workspace/materials/{projectId}/dialogue/冲突/逼供.json`
+- 文件内容范例
+  - `workspace/materials/demo/character/外貌/眼神.json`
+    - `{"title":"眼神","content":"眼中微光摇曳...","tags":["眼神","外貌","人物细节"],"type":"character","subtype":"外貌","updatedAt":1731500000000}`
+- 前端调用
+  - 启用“知识库”工具，模型将自动触发 `knowledge_base`，例如：
+    - `{"projectId":"demo","category":"character","subcategory":"外貌","query":"眼神"}`
+  - 返回结构化 `items` 用于素材面板列表和插入
+
+**现状代码位置**
+- 工具注册与分类读取：`sample_data/services/toolRegistry.ts`
+- 兼容层结构化输出与严格 JSON：`sample_data/services/aiServiceCompatibility.ts` 与 `sample_data/services/openAIService.ts`
+- Workspace 文件 API：`backend/routers/workspace.py`
+
+**建议分类模板清单**
+- `character`: 外貌/服饰/行为/心理/身份/关系
+- `environment`: 自然/城市/室内/天气/时间/气味/声响/光线
+- `action`: 日常/追逐/战斗/仪式/工作/交流
+- `emotion`: 喜悦/愤怒/悲伤/恐惧/厌恶/羞耻/复杂
+- `dialogue`: 冲突/铺垫/揭秘/安慰/幽默/套路/谈判
+- `scene`: 开场/高潮/转折/悬念/结尾/相遇/离别
+- `object`: 器物/信物/科技/奇物
+- `setting`: 历史/文化/制度/风俗/地理
+- `theme`: 爱与牺牲/秩序与自由/成长/权力/信仰
+- `imagery`: 色彩/意象/比喻/象征
+
+如果你提供一个具体 `projectId`，我可以批量生成该项目下的目录骨架与若干示例 JSON 素材文件，便于你直接在素材页面使用与测试。

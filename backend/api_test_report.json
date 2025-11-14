@@ -1,0 +1,500 @@
+{
+  "summary": {
+    "total_tests": 20,
+    "successful_tests": 19,
+    "failed_tests": 1,
+    "success_rate": 95.0
+  },
+  "test_results": [
+    {
+      "test_name": "Health Check",
+      "method": "GET",
+      "endpoint": "/",
+      "status_code": 200,
+      "expected_status": 200,
+      "response_time": 0.009,
+      "success": true,
+      "response_data": {
+        "message": "StoryAI Backend API",
+        "version": "1.0.0",
+        "status": "running"
+      }
+    },
+    {
+      "test_name": "AI Health Check",
+      "method": "GET",
+      "endpoint": "/api/ai/health",
+      "status_code": 200,
+      "expected_status": 200,
+      "response_time": 0.003,
+      "success": true,
+      "response_data": {
+        "status": "healthy",
+        "ai_service": "running",
+        "cache": {
+          "l1_size": 0,
+          "redis_available": true,
+          "redis_connected": true
+        }
+      }
+    },
+    {
+      "test_name": "Get Available Models",
+      "method": "GET",
+      "endpoint": "/api/ai/models",
+      "status_code": 200,
+      "expected_status": 200,
+      "response_time": 0.001,
+      "success": true,
+      "response_data": [
+        {
+          "model_id": "gpt-4",
+          "provider": "openai",
+          "model_name": "gpt-4",
+          "available": false,
+          "streaming_support": true,
+          "max_tokens": 8192,
+          "description": "Openai - gpt-4"
+        },
+        {
+          "model_id": "gpt-4-turbo",
+          "provider": "openai",
+          "model_name": "gpt-4-turbo",
+          "available": false,
+          "streaming_support": true,
+          "max_tokens": 4096,
+          "description": "Openai - gpt-4-turbo"
+        },
+        {
+          "model_id": "gpt-3.5-turbo",
+          "provider": "openai",
+          "model_name": "gpt-3.5-turbo",
+          "available": false,
+          "streaming_support": true,
+          "max_tokens": 4096,
+          "description": "Openai - gpt-3.5-turbo"
+        },
+        {
+          "model_id": "azure-gpt-4",
+          "provider": "openai",
+          "model_name": "gpt-4",
+          "available": false,
+          "streaming_support": true,
+          "max_tokens": 8192,
+          "description": "Openai - gpt-4"
+        },
+        {
+          "model_id": "moonshot-v1-8k",
+          "provider": "openai",
+          "model_name": "moonshot-v1-8k",
+          "available": false,
+          "streaming_support": true,
+          "max_tokens": 8192,
+          "description": "Openai - moonshot-v1-8k"
+        },
+        {
+          "model_id": "moonshot-v1-32k",
+          "provider": "openai",
+          "model_name": "moonshot-v1-32k",
+          "available": false,
+          "streaming_support": true,
+          "max_tokens": 32768,
+          "description": "Openai - moonshot-v1-32k"
+        },
+        {
+          "model_id": "deepseek-chat",
+          "provider": "openai",
+          "model_name": "deepseek-chat",
+          "available": true,
+          "streaming_support": true,
+          "max_tokens": 4096,
+          "description": "Openai - deepseek-chat"
+        },
+        {
+          "model_id": "deepseek-coder",
+          "provider": "openai",
+          "model_name": "deepseek-coder",
+          "available": true,
+          "streaming_support": true,
+          "max_tokens": 4096,
+          "description": "Openai - deepseek-coder"
+        },
+        {
+          "model_id": "claude-3-sonnet",
+          "provider": "anthropic",
+          "model_name": "claude-3-sonnet-20240229",
+          "available": false,
+          "streaming_support": true,
+          "max_tokens": 4096,
+          "description": "Anthropic - claude-3-sonnet-20240229"
+        },
+        {
+          "model_id": "claude-3-haiku",
+          "provider": "anthropic",
+          "model_name": "claude-3-haiku-20240307",
+          "available": false,
+          "streaming_support": true,
+          "max_tokens": 4096,
+          "description": "Anthropic - claude-3-haiku-20240307"
+        },
+        {
+          "model_id": "mistral-large",
+          "provider": "openai",
+          "model_name": "mistral-large-latest",
+          "available": false,
+          "streaming_support": true,
+          "max_tokens": 4096,
+          "description": "Openai - mistral-large-latest"
+        },
+        {
+          "model_id": "text-embedding-ada-002",
+          "provider": "openai",
+          "model_name": "text-embedding-ada-002",
+          "available": false,
+          "streaming_support": false,
+          "max_tokens": 2048,
+          "description": "Openai - text-embedding-ada-002"
+        },
+        {
+          "model_id": "text-embedding-3-small",
+          "provider": "openai",
+          "model_name": "text-embedding-3-small",
+          "available": false,
+          "streaming_support": false,
+          "max_tokens": 2048,
+          "description": "Openai - text-embedding-3-small"
+        },
+        {
+          "model_id": "text-embedding-3-large",
+          "provider": "openai",
+          "model_name": "text-embedding-3-large",
+          "available": false,
+          "streaming_support": false,
+          "max_tokens": 2048,
+          "description": "Openai - text-embedding-3-large"
+        }
+      ]
+    },
+    {
+      "test_name": "Get Model Config",
+      "method": "GET",
+      "endpoint": "/api/ai/models/gpt-3.5-turbo/config",
+      "status_code": 200,
+      "expected_status": 200,
+      "response_time": 0.001,
+      "success": true,
+      "response_data": {
+        "model_id": "gpt-3.5-turbo",
+        "provider": "openai",
+        "model_name": "gpt-3.5-turbo",
+        "max_tokens": 4096,
+        "temperature": 0.7,
+        "streaming_support": false
+      }
+    },
+    {
+      "test_name": "Cache Statistics",
+      "method": "GET",
+      "endpoint": "/api/ai/cache/stats",
+      "status_code": 200,
+      "expected_status": 200,
+      "response_time": 0.002,
+      "success": true,
+      "response_data": {
+        "success": true,
+        "stats": {
+          "l1_cache": {
+            "size": 0,
+            "max_size": 1000,
+            "keys": []
+          },
+          "redis_available": true,
+          "redis_connected": true
+        }
+      }
+    },
+    {
+      "test_name": "Run AI Agent",
+      "method": "POST",
+      "endpoint": "/api/ai/run-agent",
+      "status_code": 500,
+      "expected_status": 200,
+      "response_time": 2.275,
+      "success": false,
+      "response_data": {
+        "code": "INTERNAL_ERROR",
+        "message": "运行代理失败: 704: Internal server error"
+      }
+    },
+    {
+      "test_name": "Test Model Connection",
+      "method": "POST",
+      "endpoint": "/api/ai/test-model",
+      "status_code": 200,
+      "expected_status": 200,
+      "response_time": 2.305,
+      "success": true,
+      "response_data": {
+        "success": true,
+        "model_id": "gpt-3.5-turbo",
+        "test_result": {
+          "success": false,
+          "error": "704: Internal server error",
+          "model_id": "gpt-3.5-turbo",
+          "timestamp": "2025-11-05T09:52:50.810152"
+        }
+      }
+    },
+    {
+      "test_name": "Database Statistics",
+      "method": "GET",
+      "endpoint": "/api/db/stats",
+      "status_code": 200,
+      "expected_status": 200,
+      "response_time": 0.214,
+      "success": true,
+      "response_data": {
+        "success": true,
+        "stats": {
+          "total_documents": 260,
+          "embedded_documents": 0,
+          "embedding_coverage": 0.0,
+          "total_paragraphs": 77630,
+          "embedded_paragraphs": 77630,
+          "paragraph_embedding_coverage": 1.0,
+          "vector_indexes": [
+            {
+              "table": "documents",
+              "column": "embedding",
+              "type": "hnsw",
+              "dimension": 1536,
+              "metric": "cosine",
+              "active": null
+            },
+            {
+              "table": "paragraphs",
+              "column": "embedding",
+              "type": "hnsw",
+              "dimension": 1536,
+              "metric": "cosine",
+              "active": null
+            }
+          ],
+          "database_url": "localhost:5432/story_ai"
+        },
+        "cached": false
+      }
+    },
+    {
+      "test_name": "Create Document",
+      "method": "POST",
+      "endpoint": "/api/db/documents",
+      "status_code": 201,
+      "expected_status": 201,
+      "response_time": 0.348,
+      "success": true,
+      "response_data": {
+        "id": 268,
+        "success": true,
+        "document_id": 268,
+        "message": "Document created successfully"
+      }
+    },
+    {
+      "test_name": "Get Document",
+      "method": "GET",
+      "endpoint": "/api/db/documents/268",
+      "status_code": 200,
+      "expected_status": 200,
+      "response_time": 0.167,
+      "success": true,
+      "response_data": {
+        "id": 268,
+        "title": "Test Document",
+        "content": "This is a test document for API testing.",
+        "content_type": "text",
+        "source": "api_test",
+        "doc_metadata": {
+          "test": true,
+          "created_by": "api_tester"
+        },
+        "embedding_model": "text-embedding-ada-002",
+        "created_at": "2025-11-05T01:52:51.154737+00:00",
+        "updated_at": null
+      }
+    },
+    {
+      "test_name": "Update Document Embedding",
+      "method": "PUT",
+      "endpoint": "/api/db/documents/268/embedding",
+      "status_code": 200,
+      "expected_status": 200,
+      "response_time": 0.176,
+      "success": true,
+      "response_data": {
+        "success": true,
+        "message": "Document embedding updated successfully"
+      }
+    },
+    {
+      "test_name": "Vector Search",
+      "method": "POST",
+      "endpoint": "/api/db/search/vector",
+      "status_code": 200,
+      "expected_status": 200,
+      "response_time": 0.174,
+      "success": true,
+      "response_data": [
+        {
+          "id": 268,
+          "title": "Test Document",
+          "content": "This is a test document for API testing.",
+          "content_type": "text",
+          "source": "api_test",
+          "doc_metadata": {
+            "test": true,
+            "created_by": "api_tester"
+          },
+          "similarity": 1.0,
+          "text_score": null,
+          "vector_score": null,
+          "combined_score": null
+        }
+      ]
+    },
+    {
+      "test_name": "Hybrid Search",
+      "method": "POST",
+      "endpoint": "/api/db/search/hybrid",
+      "status_code": 200,
+      "expected_status": 200,
+      "response_time": 0.184,
+      "success": true,
+      "response_data": [
+        {
+          "id": 268,
+          "title": "Test Document",
+          "content": "This is a test document for API testing.",
+          "content_type": "text",
+          "source": "api_test",
+          "doc_metadata": {
+            "test": true,
+            "created_by": "api_tester"
+          },
+          "similarity": null,
+          "text_score": 0.4327963590621948,
+          "vector_score": 1.0,
+          "combined_score": 0.8298389136791229
+        }
+      ]
+    },
+    {
+      "test_name": "Delete Document",
+      "method": "DELETE",
+      "endpoint": "/api/db/documents/268",
+      "status_code": 204,
+      "expected_status": 204,
+      "response_time": 0.14,
+      "success": true,
+      "response_data": {
+        "raw_response": ""
+      }
+    },
+    {
+      "test_name": "Clear Cache",
+      "method": "POST",
+      "endpoint": "/api/ai/cache/clear",
+      "status_code": 200,
+      "expected_status": 200,
+      "response_time": 0.002,
+      "success": true,
+      "response_data": {
+        "success": true,
+        "message": "All cache cleared, 2 items removed"
+      }
+    },
+    {
+      "test_name": "Cache Stats After Clear",
+      "method": "GET",
+      "endpoint": "/api/ai/cache/stats",
+      "status_code": 200,
+      "expected_status": 200,
+      "response_time": 0.001,
+      "success": true,
+      "response_data": {
+        "success": true,
+        "stats": {
+          "l1_cache": {
+            "size": 0,
+            "max_size": 1000,
+            "keys": []
+          },
+          "redis_available": true,
+          "redis_connected": true
+        }
+      }
+    },
+    {
+      "test_name": "Non-existent Endpoint",
+      "method": "GET",
+      "endpoint": "/api/nonexistent",
+      "status_code": 404,
+      "expected_status": 404,
+      "response_time": 0.001,
+      "success": true,
+      "response_data": {
+        "detail": "Not Found"
+      }
+    },
+    {
+      "test_name": "Invalid Model Config",
+      "method": "GET",
+      "endpoint": "/api/ai/models/invalid-model/config",
+      "status_code": 404,
+      "expected_status": 404,
+      "response_time": 0.001,
+      "success": true,
+      "response_data": {
+        "code": 404,
+        "message": "Unsupported model: invalid-model. Supported models: ['gpt-4', 'gpt-4-turbo', 'gpt-3.5-turbo', 'azure-gpt-4', 'moonshot-v1-8k', 'moonshot-v1-32k', 'deepseek-chat', 'deepseek-coder', 'claude-3-sonnet', 'claude-3-haiku', 'mistral-large', 'text-embedding-ada-002', 'text-embedding-3-small', 'text-embedding-3-large']"
+      }
+    },
+    {
+      "test_name": "Invalid Document ID",
+      "method": "GET",
+      "endpoint": "/api/db/documents/99999",
+      "status_code": 404,
+      "expected_status": 404,
+      "response_time": 0.167,
+      "success": true,
+      "response_data": {
+        "code": 404,
+        "message": "Document not found"
+      }
+    },
+    {
+      "test_name": "Invalid Agent Request",
+      "method": "POST",
+      "endpoint": "/api/ai/run-agent",
+      "status_code": 422,
+      "expected_status": 422,
+      "response_time": 0.001,
+      "success": true,
+      "response_data": {
+        "detail": [
+          {
+            "type": "missing",
+            "loc": [
+              "body",
+              "prompt"
+            ],
+            "msg": "Field required",
+            "input": {
+              "invalid": "data"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

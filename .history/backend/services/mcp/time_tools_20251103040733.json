@@ -1,0 +1,142 @@
+{
+  "name": "time-tools",
+  "version": "1.0.0",
+  "description": "时间工具MCP服务，提供当前时间获取、时间计算和时区转换功能",
+  "author": "星达小说生成系统",
+  "license": "MIT",
+  "main": "time_tools.py",
+  "keywords": ["time", "timezone", "datetime", "mcp", "tool"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/story-ai/time-tools"
+  },
+  "endpoints": [
+    {
+      "name": "get_current_time",
+      "method": "GET",
+      "path": "/api/system/time/current",
+      "description": "获取当前时间，支持多种时区和格式",
+      "parameters": {
+        "timezone": {
+          "type": "string",
+          "description": "时区字符串，如 'Asia/Shanghai', 'UTC', 'America/New_York'",
+          "required": false
+        },
+        "format": {
+          "type": "string",
+          "description": "时间格式，支持 'iso', 'unix', 'readable'",
+          "required": false
+        }
+      }
+    },
+    {
+      "name": "calculate_time",
+      "method": "POST",
+      "path": "/api/system/time/calculate",
+      "description": "时间计算工具，支持时间加减运算和时间差计算",
+      "parameters": {
+        "base_time": {
+          "type": "string",
+          "description": "ISO格式时间，可选，默认为当前时间",
+          "required": false
+        },
+        "operation": {
+          "type": "string",
+          "description": "操作类型，支持 'add', 'subtract', 'diff'",
+          "required": true
+        },
+        "value": {
+          "type": "integer",
+          "description": "数值，用于add/subtract操作",
+          "required": false
+        },
+        "unit": {
+          "type": "string",
+          "description": "时间单位，支持 'seconds', 'minutes', 'hours', 'days'",
+          "required": false
+        },
+        "target_time": {
+          "type": "string",
+          "description": "目标时间，用于diff操作",
+          "required": false
+        }
+      }
+    },
+    {
+      "name": "list_timezones",
+      "method": "GET",
+      "path": "/api/system/time/timezones",
+      "description": "获取常用时区列表",
+      "parameters": {}
+    }
+  ],
+  "usage_examples": [
+    {
+      "name": "获取当前时间",
+      "request": "GET /api/system/time/current?timezone=Asia/Shanghai&format=readable",
+      "response": {
+        "current_time": "2025-11-03T12:03:59",
+        "timezone": "Asia/Shanghai",
+        "unix_timestamp": 1733225039,
+        "formatted": "2025-11-03 12:03:59"
+      }
+    },
+    {
+      "name": "时间加法",
+      "request": "POST /api/system/time/calculate",
+      "body": {
+        "operation": "add",
+        "value": 30,
+        "unit": "minutes"
+      },
+      "response": {
+        "result": "2025-11-03T12:33:59",
+        "operation": "add",
+        "description": "Added 30 minutes to base time"
+      }
+    },
+    {
+      "name": "计算时间差",
+      "request": "POST /api/system/time/calculate",
+      "body": {
+        "base_time": "2025-11-03T12:00:00",
+        "operation": "diff",
+        "target_time": "2025-11-03T14:30:00"
+      },
+      "response": {
+        "result": {
+          "total_seconds": 9000,
+          "days": 0,
+          "hours": 2,
+          "minutes": 30,
+          "seconds": 0,
+          "formatted": "0d 2h 30m 0s"
+        },
+        "operation": "diff",
+        "description": "Time difference between 2025-11-03T12:00:00 and 2025-11-03T14:30:00"
+      }
+    }
+  ],
+  "installation": {
+    "requirements": [
+      "pytz>=2023.3",
+      "fastapi>=0.104.1",
+      "python>=3.8"
+    ],
+    "setup_commands": [
+      "pip install -r requirements.txt",
+      "uvicorn main:app --reload"
+    ]
+  },
+  "integration": {
+    "mcp_client": {
+      "import_statement": "from time_tools import TimeToolsClient",
+      "usage_example": "client = TimeToolsClient(base_url='http://localhost:8000')\ncurrent_time = client.get_current_time(timezone='Asia/Shanghai')"
+    },
+    "curl_examples": [
+      "curl -X GET 'http://localhost:8000/api/system/time/current?timezone=UTC&format=iso'",
+      "curl -X POST 'http://localhost:8000/api/system/time/calculate' -H 'Content-Type: application/json' -d '{\"operation\":\"add\",\"value\":1,\"unit\":\"hours\"}'",
+      "curl -X GET 'http://localhost:8000/api/system/time/timezones'"
+    ]
+  }
+}

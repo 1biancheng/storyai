@@ -1,0 +1,167 @@
+以下文档基于 2025 年 7～9 月各开放平台与社区实测数据整理,汇总了「如何把 Kimi(Moonshot)大模型接入自有应用」时最常见的接入地址、鉴权方式、请求/响应格式、并发速率限制、计费口径以及一段可直接运行的 Python 示例代码.所有数值均来自官方或社区实测,如有调整请以开放平台控制台最新提示为准.
+
+--------------------------------
+一、接入前准备  
+1. 注册 / 登录控制台  
+   • 国内站:https://platform.moonshot.cn  
+   • 国际站:https://platform.moonshot.ai  
+2. 创建 API Key  
+   控制台 → 「API Key 管理」→ 新建 → 复制 `sk-xxxxxxxx`.该 Key 与项目(而非个人)绑定,可复用同一项目下的所有模型.  
+3. 领取体验额度  
+   新账号一般赠送 15 元 ≈ 1.25 M tokens(8 k 模型),可用来调试.
+
+--------------------------------
+二、接口地址与鉴权  
+1. 通用 REST 地址  
+   • 聊天补全(ChatCompletions)  
+     POST https://api.moonshot.cn/v1/chat/completions  
+   • 模型列表  
+     GET  https://api.moonshot.cn/v1/models  
+2. 鉴权方式  
+   在 Header 中携带:  
+   Authorization: Bearer <MOONSHOT_API_KEY>  
+   Content-Type: application/json  
+   说明:Moonshot 同时兼容 OpenAI / Anthropic 路径,社区插件(kimi-cc、Claude-Code)均使用同一 Key.
+
+--------------------------------
+三、请求参数(以 ChatCompletions 为例)
+
+| 字段 | 类型 | 必/选 | 说明 |
+|---|---|---|---|
+| model | string | 必 | 目前开放 moonshot-v1-8k / 32k / 128k |
+| messages | array | 必 | [{"role":"system/user/assistant","content":"..."}] |
+| temperature | float | 选 | 0-2,默认 0.3 |
+| max_tokens | int | 选 | 本次最多生成的 token 数;不填时平台自动给模型上限 |
+| stream | bool | 选 | 是否流式返回,默认 false |
+| top_p / n / stop / ... | - | 选 | 与 OpenAI 对齐,可缺省 |
+
+请求示例(curl)  
+```bash
+curl https://api.moonshot.cn/v1/chat/completions \
+  -H "Authorization: Bearer $MOONSHOT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "model": "moonshot-v1-8k",
+        "messages": [
+          {"role":"user","content":"把下面这句话翻译成英文:你好世界"}
+        ],
+        "temperature":0.3,
+        "max_tokens":64,
+        "stream":false
+      }'
+```
+
+--------------------------------
+四、响应格式  
+```json
+{
+  "id": "cmpl-3s4t5u5v5w6x6y7z8",
+  "object": "chat.completion",
+  "created": 1694000000,
+  "model": "moonshot-v1-8k",
+  "choices": [{
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Hello world."
+      },
+      "finish_reason": "stop"
+  }],
+  "usage": {
+    "prompt_tokens": 12,
+    "completion_tokens": 4,
+    "total_tokens": 16
+  }
+}
+```
+说明:usage 字段即计费凭据,按 total_tokens 扣款.
+
+--------------------------------
+五、速率与并发限制(用户级别,非 Key 级别)  
+以下默认值为"免费档 / 体验档"限制,充值后可自动升级(不同等级阈值见控制台「速率限制」页).
+
+| 维度 | 含义 | 体验档参考值 |
+|---|---|---|
+| 并发(Concurrent jobs) | 同一时刻最多处理的请求连接数 | 1 ~ 5 |
+| RPM(Request per Minute) | 每 60 s 内可发起的完整请求数 | 10 ~ 20 |
+| TPM(Token per Minute) | 每 60 s 内可上行+下行的 token 总量 | 10 k ~ 200 k |
+| TPD(Token per Day) | 自然日内累计 token 上限 | 500 k ~ 5 M |
+
+注意  
+1. 四项指标先到先限,超出即返回 429 / 503,并在 header 中给出  
+   `x-ratelimit-reset: <unixtime>`.  
+2. 若需提高并发,有两种做法:  
+   • 在控制台「速率限制」页点击「提升额度」并完成充值;  
+   • 本地做请求排队 / 指数回退(参考下方 Python 示例).实测把并发压到 3～5、RPS≤10 可稳定跑在体验档.
+
+--------------------------------
+六、计费口径(2025-09 版)  
+| 模型 | 上下文长度 | 输入价格 | 输出价格 | 折合人民币(元/1M token) |
+|---|---|---|---|---|
+| moonshot-v1-8k | 8 k | $0.012 /1 k | $0.012 /1 k | 输入≈12 元,输出≈12 元 |
+| moonshot-v1-32k | 32 k | $0.024 /1 k | $0.024 /1 k | 输入≈24 元,输出≈24 元 |
+| moonshot-v1-128k | 128 k | $0.060 /1 k | $0.060 /1 k | 输入≈60 元,输出≈60 元 |
+
+Token 换算:1 token ≈ 1.5～2 个汉字,系统先按「prompt + max_tokens」预扣,完成后按实际生成补差.
+
+--------------------------------
+七、Python 生产级示例(带重试 & 限速)  
+```python
+import os, time, random
+import requests
+from typing import List, Dict
+
+MOONSHOT_KEY = os.getenv("MOONSHOT_API_KEY")
+ENDPOINT = "https://api.moonshot.cn/v1/chat/completions"
+
+def chat_one(messages: List[Dict], temperature=0.3, max_tokens=512, stream=False):
+    headers = {
+        "Authorization": f"Bearer {MOONSHOT_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": "moonshot-v1-8k",
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "stream": stream
+    }
+    # 指数回退:最多 5 次
+    for attempt in range(1, 6):
+        r = requests.post(ENDPOINT, headers=headers, json=payload, timeout=60)
+        if r.status_code == 200:
+            return r.json()["choices"][0]["message"]["content"]
+        elif r.status_code == 429:
+            reset = int(r.headers.get("x-ratelimit-reset", time.time() + 60))
+            wait = max(reset - time.time(), 2 ** attempt + random.uniform(0, 2))
+            print(f"[429] 第{attempt}次重试,等待 {wait:.1f}s …")
+            time.sleep(wait)
+        else:
+            r.raise_for_status()
+    raise RuntimeError("仍被限流,请稍后重试或升级套餐")
+
+if __name__ == "__main__":
+    print(chat_one([{"role": "user", "content": "1+1=?请只给答案"}]))
+```
+说明:  
+• 采用指数回退 + 随机 jitter,可把体验档 10 RPM 的极限打满,同时降低 429 概率.  
+• 若业务并发更高,建议本地队列化(redis/rq、celery)或申请更高等级.
+
+--------------------------------
+八、常见错误码速查  
+| 状态码 | 含义 | 处理建议 |
+|---|---|---|
+| 401 | 无效 Key | 检查 Bearer 拼写及 Key 是否复制完整 |
+| 429 | 速率超限 | 等待 reset 时间后重试,或降并发 |
+| 400 | 参数不合规 | 检查 messages 是否为空、max_tokens 超限 |
+| 503 | 瞬时高负载 | 同 429 做回退,或换时段调用 |
+
+--------------------------------
+九、进一步阅读 & 更新通道  
+1. 官方 Wiki(含 curl / Java / Go 多语言)  
+   https://platform.moonshot.cn/docs  
+2. 社区「kimi-cc」插件源码(Claude-Code 兼容)  
+   https://github.com/MoonshotAI/kimi-cc  
+3. 限速 / 价格调整公告第一时间在控制台「站内信」推送,建议关注.
+
+至此,您已具备将 Kimi 完整嵌入 Web / 桌面 / 移动应用的全部信息.祝开发顺利!

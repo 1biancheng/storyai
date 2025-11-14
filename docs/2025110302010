@@ -1,0 +1,66 @@
+// enhancedChapterList.tsx
+import React, { useRef, useEffect } from 'react';
+import { Chapter } from '../types';
+import { DragEvent } from 'react';
+
+interface EnhancedChapterListProps {
+  chapters: Chapter[];
+  selectedChapterId: string | null;
+  onSelectChapter: (id: string) => void;
+  onBatchDelete: () => void;
+  onDragStart: (e: DragEvent, chapter: Chapter) => void;
+  onDragOver: (e: DragEvent) => void;
+  onDrop: (e: DragEvent, targetChapterId: string) => void;
+}
+
+const EnhancedChapterList: React.FC<EnhancedChapterListProps> = ({
+  chapters,
+  selectedChapterId,
+  onSelectChapter,
+  onBatchDelete,
+  onDragStart,
+  onDragOver,
+  onDrop
+}) => {
+  return (
+    <div className="chapter-list">
+      <div className="header">
+        <div className="actions">
+          <button className="btn btn-primary">+ 新建章节</button>
+          <button className="btn btn-secondary" onClick={onBatchDelete}>
+            批量删除
+          </button>
+        </div>
+      </div>
+      
+      <div className="chapters-container">
+        {chapters.map((chapter, index) => (
+          <div
+            key={chapter.id}
+            className={`chapter-item ${selectedChapterId === chapter.id ? 'active' : ''}`}
+            draggable
+            onDragStart={(e) => onDragStart(e, chapter)}
+            onDragOver={onDragOver}
+            onDrop={(e) => onDrop(e, chapter.id)}
+            onDragEnd={() => {
+              // 拖拽结束时的处理
+            }}
+            onClick={() => onSelectChapter(chapter.id)}
+          >
+            <div className="chapter-title">{chapter.title}</div>
+            <div className="chapter-stats">
+              <span>字数: {chapter.wordCount}</span>
+              {chapter.linkedContents && chapter.linkedContents.length > 0 && (
+                <span className="linked-badge">
+                  链接 {chapter.linkedContents.length}
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default EnhancedChapterList;

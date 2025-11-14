@@ -1,0 +1,46 @@
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+sse-starlette>=1.8.2
+aiohttp>=9.1
+aioredis>=2.0.1
+psycopg[binary]>=3.1.13
+asyncpg>=0.29.0
+sqlalchemy[asyncio]>=2.0.23
+python-dotenv>=1.0.0
+pydantic>=2.5.0
+python-multipart>=0.0.6
+pgvector>=0.2.4
+openai>=1.3.0
+anthropic>=0.7.0
+
+# 新增依赖: book-division-optimization项目
+jieba>=0.42.1  # 中文分词与关键词提取
+scikit-learn>=1.3.0  # K-Means聚类用于RL查询聚类
+numpy>=1.24.0  # 数值计算
+json-repair>=0.7.0  # JSON修复工具(已在项目中使用)
+
+# Document extraction "three-articles" core dependencies (all enabled by default):
+# charset-normalizer: Pure Python encoding detector (official recommendation, replaces deprecated cchardet)
+# textract: Multi-format text extraction (requires system dependencies: Poppler/Antiword)
+# markitdown: Structure-preserving Markdown converter (version locked until stable release)
+charset-normalizer>=3.0.0
+textract>=1.6.5
+markitdown==0.0.1a2
+
+# Security and compatibility constraints
+# Pin versions to avoid known vulnerabilities
+cryptography>=42.0.0  # Security library with vulnerability fixes
+requests>=2.31.0  # HTTP library with security updates
+urllib3>=2.0.7  # HTTP client with security fixes
+
+# Development and testing dependencies
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+httpx>=0.25.0  # Async HTTP client for testing
+
+# Dependency management standards (项目规范)
+# 1. Security first: All dependencies must pass pip-audit scan
+# 2. Version pinning: Critical security libraries use minimum version constraints
+# 3. Development tools: Include testing and debugging dependencies
+# 4. Documentation: Comment all non-obvious dependencies with purpose
+# 5. Regular audits: Run pip-audit monthly and update vulnerable packages

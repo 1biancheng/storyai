@@ -1,0 +1,198 @@
+// enhancedEditor.tsx
+import React, { useState, useEffect, useRef } from 'react';
+import { Chapter, WritingTool } from '../types';
+
+interface EnhancedEditorProps {
+  chapter: Chapter | null;
+  onSave: (content: string) => void;
+  onContinueWriting: (instruction: string) => void;
+  onStopWriting: () => void;
+  isWriting: boolean;
+  writingTools: WritingTool[];
+  onApplyTool: (toolId: string) => void;
+}
+
+const EnhancedEditor: React.FC<EnhancedEditorProps> = ({
+  chapter,
+  onSave,
+  onContinueWriting,
+  onStopWriting,
+  isWriting,
+  writingTools,
+  onApplyTool
+}) => {
+  const [content, setContent] = useState<string>('');
+  const [fontFamily, setFontFamily] = useState<string>('标准');
+  const [fontSize, setFontSize] = useState<number>(16);
+  const [prompt, setPrompt] = useState<string>('无提示词');
+  const [showTools, setShowTools] = useState<boolean>(false);
+  const editorRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (chapter) {
+      setContent(chapter.content);
+    }
+  }, [chapter]);
+
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setContent(e.target.value);
+    // 自动保存功能可以在这里添加
+  };
+
+  const handleSave = () => {
+    onSave(content);
+  };
+
+  const handleContinueWriting = () => {
+    if (editorRef.current) {
+      const selectionStart = editorRef.current.selectionStart;
+      const selectionEnd = editorRef.current.selectionEnd;
+      const instruction = prompt === '无提示词' ? '' : prompt;
+      
+      onContinueWriting(instruction);
+    }
+  };
+
+  const wordCount = content.length;
+  const readingTime = Math.ceil(wordCount / 200); // 假设每分钟200字
+
+  return (
+    <div className="editor">
+      {chapter ? (
+        <>
+          <div className="editor-header">
+            <h2>{chapter.title}</h2>
+            <div className="editor-controls">
+              <div className="stats">
+                <span>总字数: {wordCount}</span>
+                <span>预计阅读: {readingTime}分钟</span>
+                <span className="links-count">
+                  链接内容: {chapter.linkedContents?.length || 0}
+                </span>
+                <select 
+                  value={fontFamily} 
+                  onChange={(e) => setFontFamily(e.target.value)}
+                >
+                  <option value="标准">标准</option>
+                  <option value="宋体">宋体</option>
+                  <option value="黑体">黑体</option>
+                  <option value="楷体">楷体</option>
+                </select>
+                <select 
+                  value={fontSize} 
+                  onChange={(e) => setFontSize(parseInt(e.target.value))}
+                >
+                  <option value="14">小</option>
+                  <option value="16">中</option>
+                  <option value="18">大</option>
+                  <option value="20">超大</option>
+                </select>
+                <select 
+                  value={prompt} 
+                  onChange={(e) => setPrompt(e.target.value)}
+                >
+                  <option value="无提示词">无提示词</option>
+                  <option value="续写情节">续写情节</option>
+                  <option value="描写环境">描写环境</option>
+                  <option value="刻画人物">刻画人物</option>
+                  <option value="对话生成">对话生成</option>
+                  <option value="情节分析">情节分析</option>
+                </select>
+              </div>
+              
+              <div className="tool-buttons">
+                <button 
+                  className={`btn ${showTools ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setShowTools(!showTools)}
+                >
+                  🛠️ 工具箱 {showTools ? '▲' : '▼'}
+                </button>
+                <button className="btn btn-save" onClick={handleSave}>
+                  保存
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          {showTools && (
+            <div className="tools-panel">
+              <h3>写作工具</h3>
+              <div className="tools-grid">
+                {writingTools.map(tool => (
+                  <div 
+                    key={tool.id} 
+                    className="tool-item"
+                    onClick={() => onApplyTool(tool.id)}
+                  >
+                    <div className="tool-icon">{tool.icon}</div>
+                    <div className="tool-info">
+                      <div className="tool-name">{tool.name}</div>
+                      <div className="tool-desc">{tool.description}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          <textarea
+            ref={editorRef}
+            value={content}
+            onChange={handleContentChange}
+            className="editor-content"
+            style={{ fontSize: `${fontSize}px` }}
+            placeholder="开始创作..."
+          />
+          
+          <div className="writing-tools">
+            <div className="tool-info">
+              <div className="info-icon">💡</div>
+              <div className="info-text">
+                <strong>续写功能使用说明：</strong>
+                <ol>
+                  <li>输入 user: 你的指令</li>
+                  <li>点击「续写」，AI会流式输出：</li>
+                  <li>-> 模型回答内容...</li>
+                  <li><-</li>
+                  <li>3. 点击「暂停」可以停止输出</li>
+                </ol>
+              </div>
+            </div>
+            
+            <div className="tool-buttons">
+              <button 
+                className="btn btn-continue" 
+                onClick={handleContinueWriting}
+                disabled={isWriting}
+              >
+                {isWriting ? '正在生成...' : '续写'}
+              </button>
+              <button 
+                className="btn btn-stop" 
+                onClick={onStopWriting}
+                disabled={!isWriting}
+              >
+                暂停
+              </button>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="no-chapter-selected">
+          <h3>开始创作之旅</h3>
+          <p>请选择一个章节开始写作，或者创建新的项目和章节。</p>
+          <div className="quick-actions">
+            <button className="btn btn-primary" onClick={() => {}}>
+              快速创建新项目
+            </button>
+            <button className="btn btn-secondary" onClick={() => {}}>
+              导入文档
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default EnhancedEditor;

@@ -1,0 +1,6 @@
+{
+  "name": "Story AI",
+  "description": "AI-powered novel generation system with multi-model support and intelligent content creation.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi-Agent Writing Assistant</title>
+  <link rel="icon" type="image/svg+xml" href="/public/favicon.svg">
+  <link rel="stylesheet" href="/index.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <script>
+    // 主题初始化脚本,防止页面加载闪烁
+    (function() {
+      // 初始化暗色模式
+      const theme = localStorage.getItem('theme');
+      if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      
+      // 初始化自定义主题色彩
+      const themeConfig = localStorage.getItem('themeConfig');
+      if (themeConfig) {
+        try {
+          const config = JSON.parse(themeConfig);
+          if (config.primaryColor) {
+            document.documentElement.style.setProperty('--primary-color', config.primaryColor);
+            document.documentElement.style.setProperty('--primary-text-color', config.primaryTextColor);
+            document.documentElement.style.setProperty('--editor-bg-color', config.editorBgColor);
+            document.documentElement.style.setProperty('--editor-text-color', config.editorTextColor);
+          }
+        } catch (e) {
+          console.warn('Failed to parse theme config:', e);
+        }
+      }
+    })();
+  </script>
+  <style>
+    :root {
+      --primary-color: #333230;
+      --primary-text-color: #FFFFFF;
+      --editor-bg-color: #1E1E1E;
+      --editor-text-color: #FFFFFF;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+  <script>
+    // 阻止第三方追踪错误
+    window.addEventListener('error', function(e) {
+      if (e.filename && e.filename.includes('trace.qq.com')) {
+        e.preventDefault();
+        console.warn('屏蔽了第三方追踪错误:', e.message);
+      }
+    });
+  </script>
+</body>
+</html>

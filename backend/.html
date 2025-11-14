@@ -1,0 +1,1015 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目技术规范:SSE、缓存与数据库最佳实践</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <link href="https://fonts.cdnfonts.com/css/crimson-text" rel="stylesheet">
+    <link href="https://fonts.cdnfonts.com/css/inter" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0f766e;
+            --primary-light: #14b8a6;
+            --secondary: #374151;
+            --accent: #f59e0b;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f9fafb;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --border: #e5e7eb;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.7;
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+        
+        .serif-display {
+            font-family: 'Crimson Text', serif;
+        }
+        
+        .hero-gradient {
+            background: linear-gradient(135deg, #f0fdfa 0%, #ecfdf5 100%);
+        }
+        
+        .toc-fixed {
+            position: fixed;
+            top: 2rem;
+            left: 2rem;
+            width: 280px;
+            max-height: calc(100vh - 4rem);
+            overflow-y: auto;
+            z-index: 50;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .main-content {
+            margin-left: 320px;
+            padding: 2rem;
+        }
+        
+        .section-anchor {
+            scroll-margin-top: 2rem;
+        }
+        
+        .citation-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.85em;
+            vertical-align: super;
+            margin-left: 2px;
+        }
+        
+        .citation-link:hover {
+            color: var(--primary-light);
+            text-decoration: underline;
+        }
+        
+        .highlight-box {
+            background: linear-gradient(135deg, #f0fdfa 0%, #ecfdf5 100%);
+            border-left: 4px solid var(--primary);
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .code-block {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        .bento-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+        
+        .bento-item {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .chart-container {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        @media (max-width: 1280px) {
+            .toc-fixed {
+                display: none;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .bento-grid {
+                grid-template-columns: 1fr;
+            }
+            .main-content {
+                padding: 1rem;
+            }
+        }
+    </style>
+  <base target="_blank">
+</head>
+
+  <body class="bg-gray-50">
+    <!-- Fixed Table of Contents -->
+    <nav class="toc-fixed">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4 serif-display">目录</h3>
+      <ul class="space-y-2 text-sm">
+        <li>
+          <a href="#introduction" class="text-gray-600 hover:text-teal-700 transition-colors">引言</a>
+        </li>
+        <li>
+          <a href="#core-principles" class="text-gray-600 hover:text-teal-700 transition-colors">核心原则</a>
+        </li>
+        <li>
+          <a href="#sse-implementation" class="text-gray-600 hover:text-teal-700 transition-colors">SSE 实现</a>
+        </li>
+        <li>
+          <a href="#caching-strategy" class="text-gray-600 hover:text-teal-700 transition-colors">缓存策略</a>
+        </li>
+        <li>
+          <a href="#database-vector" class="text-gray-600 hover:text-teal-700 transition-colors">数据库与向量检索</a>
+        </li>
+        <li>
+          <a href="#cors-security" class="text-gray-600 hover:text-teal-700 transition-colors">CORS 安全</a>
+        </li>
+        <li>
+          <a href="#ai-integration" class="text-gray-600 hover:text-teal-700 transition-colors">AI 服务集成</a>
+        </li>
+        <li>
+          <a href="#deployment" class="text-gray-600 hover:text-teal-700 transition-colors">部署与交付</a>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Hero Section with Bento Layout -->
+      <section class="hero-gradient rounded-2xl p-8 mb-12">
+        <div class="bento-grid">
+          <div class="bento-item">
+            <h1 class="text-3xl font-bold text-gray-900 mb-4 serif-display">
+              <em>项目技术规范</em>
+            </h1>
+            <p class="text-xl text-gray-700 leading-relaxed">
+              AI驱动应用的SSE、缓存与数据库最佳实践指南
+            </p>
+          </div>
+          <div class="bento-item bg-gradient-to-br from-teal-50 to-emerald-50">
+            <div class="flex items-center mb-4">
+              <i class="fas fa-code text-teal-600 text-2xl mr-3"></i>
+              <h3 class="text-lg font-semibold text-gray-900">技术栈</h3>
+            </div>
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div class="bg-white p-3 rounded-lg">
+                <span class="font-medium text-gray-900">SSE</span>
+                <br>
+                <span class="text-gray-600">sse-starlette</span>
+              </div>
+              <div class="bg-white p-3 rounded-lg">
+                <span class="font-medium text-gray-900">缓存</span>
+                <br>
+                <span class="text-gray-600">Redis + LRU</span>
+              </div>
+              <div class="bg-white p-3 rounded-lg">
+                <span class="font-medium text-gray-900">数据库</span>
+                <br>
+                <span class="text-gray-600">PostgreSQL</span>
+              </div>
+              <div class="bg-white p-3 rounded-lg">
+                <span class="font-medium text-gray-900">向量</span>
+                <br>
+                <span class="text-gray-600">pgvector</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Introduction -->
+      <section id="introduction" class="section-anchor mb-16">
+        <div class="highlight-box">
+          <h2 class="text-2xl font-bold text-gray-900 mb-4 serif-display">
+            <i class="fas fa-rocket text-teal-600 mr-3"></i>
+            引言
+          </h2>
+          <p class="text-lg text-gray-700 leading-relaxed">
+            本技术规范旨在为项目中的所有AI智能体提供一个统一、明确且高效的技术实施蓝图.其核心目标是确保在实时通信、数据缓存、数据库交互及AI服务集成等关键领域,所有生成的代码都遵循一套经过验证的最佳实践.
+          </p>
+        </div>
+
+        <div class="bento-grid mt-8">
+          <div class="bento-item">
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">
+              <i class="fas fa-target text-amber-500 mr-2"></i>
+              规范目的
+            </h3>
+            <ul class="space-y-2 text-gray-700">
+              <li class="flex items-start">
+                <i class="fas fa-check-circle text-teal-500 mr-2 mt-1"></i>
+                <span>提升系统的可靠性、性能、可维护性和安全性</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check-circle text-teal-500 mr-2 mt-1"></i>
+                <span>减少技术选型不一致引入的潜在缺陷</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check-circle text-teal-500 mr-2 mt-1"></i>
+                <span>确保项目技术栈的高度一致性</span>
+              </li>
+            </ul>
+          </div>
+          <div class="bento-item">
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">
+              <i class="fas fa-scope text-blue-500 mr-2"></i>
+              适用范围
+            </h3>
+            <ul class="space-y-2 text-gray-700">
+              <li class="flex items-start">
+                <i class="fas fa-dot-circle text-gray-400 mr-2 mt-1"></i>
+                <span>实时通信(SSE)</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-dot-circle text-gray-400 mr-2 mt-1"></i>
+                <span>数据缓存(LRU + Redis)</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-dot-circle text-gray-400 mr-2 mt-1"></i>
+                <span>数据库与向量检索</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-dot-circle text-gray-400 mr-2 mt-1"></i>
+                <span>AI服务集成</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-dot-circle text-gray-400 mr-2 mt-1"></i>
+                <span>跨域通信(CORS)</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Core Principles -->
+      <section id="core-principles" class="section-anchor mb-16">
+        <h2 class="text-3xl font-bold text-gray-900 mb-8 serif-display">核心原则与目标</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+            <div class="flex items-center mb-4">
+              <i class="fas fa-shield-alt text-green-500 text-2xl mr-3"></i>
+              <h3 class="text-lg font-semibold text-gray-900">可靠性</h3>
+            </div>
+            <p class="text-gray-600">通过统一的错误处理和资源管理,确保系统在各种异常情况下都能稳定运行</p>
+          </div>
+          <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+            <div class="flex items-center mb-4">
+              <i class="fas fa-tachometer-alt text-blue-500 text-2xl mr-3"></i>
+              <h3 class="text-lg font-semibold text-gray-900">性能</h3>
+            </div>
+            <p class="text-gray-600">采用异步编程、高效缓存和优化的数据库查询,最大化系统吞吐量</p>
+          </div>
+          <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+            <div class="flex items-center mb-4">
+              <i class="fas fa-cogs text-purple-500 text-2xl mr-3"></i>
+              <h3 class="text-lg font-semibold text-gray-900">可维护性</h3>
+            </div>
+            <p class="text-gray-600">通过清晰的代码结构和一致的实现模式,降低维护成本和学习曲线</p>
+          </div>
+        </div>
+
+        <div class="highlight-box">
+          <h3 class="text-xl font-semibold text-gray-900 mb-3">
+            <i class="fas fa-key text-amber-500 mr-2"></i>
+            关键术语定义
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-3">
+              <div class="flex items-start">
+                <span class="font-medium text-gray-900 mr-2">SSE:</span>
+                <span class="text-gray-700">Server-Sent Events,基于HTTP的服务器推送技术</span>
+              </div>
+              <div class="flex items-start">
+                <span class="font-medium text-gray-900 mr-2">CORS:</span>
+                <span class="text-gray-700">Cross-Origin Resource Sharing,跨域资源共享</span>
+              </div>
+              <div class="flex items-start">
+                <span class="font-medium text-gray-900 mr-2">LRU:</span>
+                <span class="text-gray-700">Least Recently Used,最近最少使用缓存算法</span>
+              </div>
+            </div>
+            <div class="space-y-3">
+              <div class="flex items-start">
+                <span class="font-medium text-gray-900 mr-2">pgvector:</span>
+                <span class="text-gray-700">PostgreSQL向量数据存储和查询扩展</span>
+              </div>
+              <div class="flex items-start">
+                <span class="font-medium text-gray-900 mr-2">HNSW:</span>
+                <span class="text-gray-700">Hierarchical Navigable Small World,图索引算法</span>
+              </div>
+              <div class="flex items-start">
+                <span class="font-medium text-gray-900 mr-2">IVFFlat:</span>
+                <span class="text-gray-700">Inverted File with Flat Compression,聚类索引算法</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SSE Implementation -->
+      <section id="sse-implementation" class="section-anchor mb-16">
+        <h2 class="text-3xl font-bold text-gray-900 mb-8 serif-display">实时通信:Server-Sent Events</h2>
+
+        <div class="bg-white p-8 rounded-xl border border-gray-200 shadow-sm mb-8">
+          <h3 class="text-2xl font-semibold text-gray-900 mb-6">
+            <i class="fas fa-server text-teal-600 mr-3"></i>
+            服务端实现 (sse-starlette)
+          </h3>
+
+          <div class="mb-6">
+            <h4 class="text-lg font-semibold text-gray-900 mb-3">核心组件:EventSourceResponse</h4>
+            <p class="text-gray-700 mb-4">
+              项目强制要求使用
+              <code class="bg-gray-100 px-2 py-1 rounded text-sm">sse-starlette</code> 库提供的
+              <code class="bg-gray-100 px-2 py-1 rounded text-sm">EventSourceResponse</code> 类作为唯一的SSE服务端实现<a href="https://pypi.org/project/sse-starlette/" class="citation-link">[3]</a>.该组件基于异步生成器模式,将事件流的生产逻辑与HTTP传输层解耦.
+            </p>
+          </div>
+
+          <div class="code-block mb-6">
+            <pre><code>from sse_starlette import EventSourceResponse
+from fastapi import Request
+
+async def event_generator(request: Request):
+    try:
+        while True:
+            # 检查客户端是否断开连接
+            if await request.is_disconnected():
+                break
+            
+            # 生成事件数据
+            data = await get_next_event()
+            yield {"data": json.dumps(data)}
+            
+            await asyncio.sleep(1)
+    except asyncio.CancelledError:
+        # 清理资源
+        await cleanup_resources()
+
+@app.get("/sse-endpoint")
+async def sse_endpoint(request: Request):
+    return EventSourceResponse(
+        event_generator(request),
+        ping=15,  # 心跳间隔15秒
+        headers={"Cache-Control": "no-cache"}
+    )</code></pre>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h5 class="font-semibold text-gray-900 mb-2">连接生命周期管理</h5>
+              <ul class="text-sm text-gray-700 space-y-1">
+                <li>• 定期检查
+                  <code>request.is_disconnected()</code>
+                </li>
+                <li>• 捕获
+                  <code>asyncio.CancelledError</code> 异常
+                </li>
+                <li>• 及时清理资源,防止僵尸任务</li>
+              </ul>
+            </div>
+            <div>
+              <h5 class="font-semibold text-gray-900 mb-2">心跳与超时策略</h5>
+              <ul class="text-sm text-gray-700 space-y-1">
+                <li>• 统一心跳间隔:15秒</li>
+                <li>• 设置发送超时
+                  <code>send_timeout=30</code>
+                </li>
+                <li>• 防止网络中间件关闭连接</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
+          <h3 class="text-2xl font-semibold text-gray-900 mb-6">
+            <i class="fas fa-browser text-blue-600 mr-3"></i>
+            客户端实现 (原生 EventSource)
+          </h3>
+
+          <div class="code-block mb-6">
+            <pre><code>function subscribeSSE(url, handlers) {
+    const eventSource = new EventSource(url);
+    
+    // 标准消息处理
+    eventSource.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            handlers.onMessage(data);
+        } catch (e) {
+            handlers.onMessage(event.data);
+        }
+    };
+    
+    // 自定义事件处理
+    if (handlers.onCustomEvent) {
+        eventSource.addEventListener('custom_event', handlers.onCustomEvent);
+    }
+    
+    // 错误处理
+    eventSource.onerror = (error) => {
+        handlers.onError(error);
+        eventSource.close();
+    };
+    
+    return eventSource;
+}</code></pre>
+          </div>
+
+          <div class="highlight-box">
+            <h4 class="font-semibold text-gray-900 mb-2">
+              <i class="fas fa-exclamation-triangle text-amber-500 mr-2"></i>
+              重要注意事项
+            </h4>
+            <ul class="text-gray-700 space-y-2">
+              <li>• <strong>避免多连接限制:</strong>浏览器对同源HTTP/1.1连接数限制约为6个</li>
+              <li>• <strong>谨慎使用withCredentials:</strong>会触发更严格的CORS预检,增加CSRF风险</li>
+              <li>• <strong>统一错误处理:</strong>通过
+                <code>event: error</code> 格式传递结构化错误信息
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Caching Strategy -->
+      <section id="caching-strategy" class="section-anchor mb-16">
+        <h2 class="text-3xl font-bold text-gray-900 mb-8 serif-display">数据缓存策略</h2>
+
+        <div class="bento-grid mb-8">
+          <div class="bento-item">
+            <h3 class="text-xl font-semibold text-gray-900 mb-4">
+              <i class="fas fa-memory text-green-600 mr-2"></i>
+              本地缓存 (LRU)
+            </h3>
+            <div class="space-y-4">
+              <div>
+                <h4 class="font-medium text-gray-900 mb-2">适用场景</h4>
+                <p class="text-sm text-gray-700">
+                  静态或变化频率极低的配置数据和元数据,如应用版本信息、业务规则、配置项等.
+                </p>
+              </div>
+              <div>
+                <h4 class="font-medium text-gray-900 mb-2">参数配置</h4>
+                <ul class="text-sm text-gray-700 space-y-1">
+                  <li>•
+                    <code>maxsize</code>: 建议128-512
+                  </li>
+                  <li>• 参数必须可哈希</li>
+                  <li>• 避免缓存依赖可变状态</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="bento-item">
+            <h3 class="text-xl font-semibold text-gray-900 mb-4">
+              <i class="fas fa-database text-red-600 mr-2"></i>
+              分布式缓存 (Redis)
+            </h3>
+            <div class="space-y-4">
+              <div>
+                <h4 class="font-medium text-gray-900 mb-2">连接配置</h4>
+                <p class="text-sm text-gray-700">
+                  使用
+                  <code>aioredis.from_url</code>,指定
+                  <code>encoding='utf-8'</code> 和
+                  <code>decode_responses=True</code>
+                </p>
+              </div>
+              <div>
+                <h4 class="font-medium text-gray-900 mb-2">数据策略</h4>
+                <ul class="text-sm text-gray-700 space-y-1">
+                  <li>• 统一使用JSON序列化</li>
+                  <li>• TTL建议60-600秒</li>
+                  <li>• 封装
+                    <code>cache_get/cache_set</code>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
+          <h3 class="text-xl font-semibold text-gray-900 mb-4">
+            <i class="fas fa-exclamation-circle text-amber-500 mr-2"></i>
+            高并发下的热点键问题
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="text-center">
+              <i class="fas fa-layer-group text-blue-500 text-3xl mb-3"></i>
+              <h4 class="font-medium text-gray-900 mb-2">分片策略</h4>
+              <p class="text-sm text-gray-700">将热点key拆分为多个子key,分散访问压力</p>
+            </div>
+            <div class="text-center">
+              <i class="fas fa-clock text-green-500 text-3xl mb-3"></i>
+              <h4 class="font-medium text-gray-900 mb-2">随机TTL</h4>
+              <p class="text-sm text-gray-700">基础TTL + 随机值,避免缓存雪崩</p>
+            </div>
+            <div class="text-center">
+              <i class="fas fa-lock text-purple-500 text-3xl mb-3"></i>
+              <h4 class="font-medium text-gray-900 mb-2">互斥锁</h4>
+              <p class="text-sm text-gray-700">防止缓存击穿,保证单线程重建缓存</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Database and Vector Search -->
+      <section id="database-vector" class="section-anchor mb-16">
+        <h2 class="text-3xl font-bold text-gray-900 mb-8 serif-display">数据库与向量检索</h2>
+
+        <div class="bg-white p-8 rounded-xl border border-gray-200 shadow-sm mb-8">
+          <h3 class="text-2xl font-semibold text-gray-900 mb-6">
+            <i class="fas fa-cogs text-indigo-600 mr-3"></i>
+            异步数据库栈 (PostgreSQL)
+          </h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <h4 class="text-lg font-semibold text-gray-900 mb-3">连接池管理</h4>
+              <ul class="space-y-2 text-gray-700">
+                <li class="flex items-start">
+                  <i class="fas fa-arrow-right text-teal-500 mr-2 mt-1"></i>
+                  <span>SQLAlchemy AsyncEngine + psycopg async驱动</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-arrow-right text-teal-500 mr-2 mt-1"></i>
+                  <span>使用
+                    <code>psycopg_pool.AsyncConnectionPool</code>
+                  </span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-arrow-right text-teal-500 mr-2 mt-1"></i>
+                  <span>应用启动时
+                    <code>await pool.open()</code>
+                  </span>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 class="text-lg font-semibold text-gray-900 mb-3">会话管理</h4>
+              <ul class="space-y-2 text-gray-700">
+                <li class="flex items-start">
+                  <i class="fas fa-exclamation-triangle text-amber-500 mr-2 mt-1"></i>
+                  <span>AsyncSession不是线程安全的</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-arrow-right text-teal-500 mr-2 mt-1"></i>
+                  <span>遵循"每任务一个Session"原则</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-arrow-right text-teal-500 mr-2 mt-1"></i>
+                  <span>设置
+                    <code>expire_on_commit=False</code>
+                  </span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-8 rounded-xl border border-gray-200 shadow-sm mb-8">
+          <h3 class="text-2xl font-semibold text-gray-900 mb-6">
+            <i class="fas fa-vector-square text-purple-600 mr-3"></i>
+            向量检索 (pgvector)
+          </h3>
+
+          <div class="mb-6">
+            <h4 class="text-lg font-semibold text-gray-900 mb-3">数据建模与DDL</h4>
+            <div class="code-block">
+              <pre><code>-- 启用pgvector扩展
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- 创建向量表
+CREATE TABLE documents (
+    id BIGSERIAL PRIMARY KEY,
+    content TEXT NOT NULL,
+    embedding VECTOR(1536) NOT NULL  -- 维度匹配嵌入模型
+);
+
+-- 创建HNSW索引
+CREATE INDEX ON documents 
+USING hnsw (embedding vector_cosine_ops)
+WITH (m = 16, ef_construction = 128);</code></pre>
+            </div>
+          </div>
+
+          <div class="mb-6">
+            <h4 class="text-lg font-semibold text-gray-900 mb-3">索引类型选择</h4>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-gray-200">
+                    <th class="text-left py-2 px-4 font-semibold">特性</th>
+                    <th class="text-left py-2 px-4 font-semibold">HNSW</th>
+                    <th class="text-left py-2 px-4 font-semibold">IVFFlat</th>
+                  </tr>
+                </thead>
+                <tbody class="text-gray-700">
+                  <tr class="border-b border-gray-100">
+                    <td class="py-2 px-4 font-medium">算法类型</td>
+                    <td class="py-2 px-4">基于图的算法</td>
+                    <td class="py-2 px-4">基于聚类的算法</td>
+                  </tr>
+                  <tr class="border-b border-gray-100">
+                    <td class="py-2 px-4 font-medium">查询性能</td>
+                    <td class="py-2 px-4 text-green-600">高</td>
+                    <td class="py-2 px-4">中等</td>
+                  </tr>
+                  <tr class="border-b border-gray-100">
+                    <td class="py-2 px-4 font-medium">内存占用</td>
+                    <td class="py-2 px-4 text-red-600">较高</td>
+                    <td class="py-2 px-4 text-green-600">较低</td>
+                  </tr>
+                  <tr class="border-b border-gray-100">
+                    <td class="py-2 px-4 font-medium">动态更新</td>
+                    <td class="py-2 px-4 text-green-600">支持</td>
+                    <td class="py-2 px-4 text-red-600">敏感</td>
+                  </tr>
+                  <tr>
+                    <td class="py-2 px-4 font-medium">适用场景</td>
+                    <td class="py-2 px-4">动态数据,高召回率要求</td>
+                    <td class="py-2 px-4">静态数据,大规模数据集</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="highlight-box">
+            <h4 class="font-semibold text-gray-900 mb-2">
+              <i class="fas fa-lightbulb text-amber-500 mr-2"></i>
+              HNSW参数调优建议
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div>
+                <span class="font-medium">m:</span> 16-32 (高维向量推荐16)
+              </div>
+              <div>
+                <span class="font-medium">ef_construction:</span> 64-128 (追求高召回率可设128+)
+              </div>
+              <div>
+                <span class="font-medium">ef_search:</span> 查询时设置,平衡召回率与速度
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CORS Security -->
+      <section id="cors-security" class="section-anchor mb-16">
+        <h2 class="text-3xl font-bold text-gray-900 mb-8 serif-display">CORS 与跨域安全</h2>
+
+        <div class="bento-grid mb-8">
+          <div class="bento-item border-l-4 border-red-500">
+            <h3 class="text-xl font-semibold text-gray-900 mb-4">
+              <i class="fas fa-ban text-red-500 mr-2"></i>
+              严格禁止
+            </h3>
+            <ul class="space-y-3 text-gray-700">
+              <li class="flex items-start">
+                <i class="fas fa-times-circle text-red-500 mr-2 mt-1"></i>
+                <span><strong>Access-Control-Allow-Origin: *</strong> - 生产环境禁用通配符</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-times-circle text-red-500 mr-2 mt-1"></i>
+                <span><strong>依赖Origin头认证</strong> - 可被轻易伪造</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-times-circle text-red-500 mr-2 mt-1"></i>
+                <span><strong>过度暴露响应头</strong> - 最小权限原则</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="bento-item border-l-4 border-green-500">
+            <h3 class="text-xl font-semibold text-gray-900 mb-4">
+              <i class="fas fa-check-circle text-green-500 mr-2"></i>
+              推荐做法
+            </h3>
+            <ul class="space-y-3 text-gray-700">
+              <li class="flex items-start">
+                <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+                <span><strong>明确白名单</strong> - 开发环境
+                  <code>http://localhost:3001</code>
+                </span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+                <span><strong>Token认证</strong> - 使用Bearer Token或JWT</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+                <span><strong>合理Max-Age</strong> - 缓存预检请求结果</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
+          <h3 class="text-xl font-semibold text-gray-900 mb-4">
+            <i class="fas fa-shield-alt text-blue-600 mr-2"></i>
+            预检请求处理
+          </h3>
+          <p class="text-gray-700 mb-4">
+            如果SSE请求需要自定义HTTP头(如认证头),浏览器会自动发起OPTIONS预检请求.服务端必须正确处理:
+          </p>
+          <div class="code-block">
+            <pre><code>@app.options("/sse-endpoint")
+async def preflight():
+    return Response(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "https://app.example.com",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Authorization, Content-Type",
+            "Access-Control-Max-Age": "86400"
+        }
+    )</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI Integration -->
+      <section id="ai-integration" class="section-anchor mb-16">
+        <h2 class="text-3xl font-bold text-gray-900 mb-8 serif-display">AI 服务集成与流式输出</h2>
+
+        <div class="bg-white p-8 rounded-xl border border-gray-200 shadow-sm mb-8">
+          <h3 class="text-2xl font-semibold text-gray-900 mb-6">
+            <i class="fas fa-brain text-purple-600 mr-3"></i>
+            服务封装策略
+          </h3>
+
+          <div class="mb-6">
+            <p class="text-gray-700 mb-4">
+              为了屏蔽不同AI模型和API提供商的差异,项目要求将所有AI交互逻辑统一封装在独立的服务层,例如
+              <code class="bg-gray-100 px-2 py-1 rounded text-sm">services/ai_service.py</code>.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="text-center p-4 bg-purple-50 rounded-lg">
+              <i class="fas fa-layer-group text-purple-500 text-2xl mb-3"></i>
+              <h4 class="font-semibold text-gray-900 mb-2">关注点分离</h4>
+              <p class="text-sm text-gray-700">业务逻辑无需关心底层API调用细节</p>
+            </div>
+            <div class="text-center p-4 bg-blue-50 rounded-lg">
+              <i class="fas fa-expand-arrows-alt text-blue-500 text-2xl mb-3"></i>
+              <h4 class="font-semibold text-gray-900 mb-2">可扩展性</h4>
+              <p class="text-sm text-gray-700">更换AI模型时只需修改服务层实现</p>
+            </div>
+            <div class="text-center p-4 bg-green-50 rounded-lg">
+              <i class="fas fa-shield text-green-500 text-2xl mb-3"></i>
+              <h4 class="font-semibold text-gray-900 mb-2">健壮性</h4>
+              <p class="text-sm text-gray-700">统一的重试、熔断和监控机制</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
+          <h3 class="text-2xl font-semibold text-gray-900 mb-6">
+            <i class="fas fa-stream text-teal-600 mr-3"></i>
+            流式输出协议
+          </h3>
+
+          <div class="mb-6">
+            <h4 class="text-lg font-semibold text-gray-900 mb-3">统一消息格式</h4>
+            <div class="code-block">
+              <pre><code>{
+    "type": "content",  // content, error, finish
+    "delta": "增量内容",
+    "finish_reason": "stop"  // stop, length, content_filter
+}</code></pre>
+            </div>
+          </div>
+
+          <div class="highlight-box">
+            <h4 class="font-semibold text-gray-900 mb-2">
+              <i class="fas fa-bug text-red-500 mr-2"></i>
+              错误处理机制
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h5 class="font-medium mb-2">服务端错误包装</h5>
+                <div class="code-block text-sm">
+                  <pre><code>event: error
+data: {"code": "AI_SERVICE_TIMEOUT", 
+       "message": "AI服务暂时不可用"}</code></pre>
+                </div>
+              </div>
+              <div>
+                <h5 class="font-medium mb-2">前端兜底处理</h5>
+                <ul class="text-sm text-gray-700 space-y-1">
+                  <li>• 显示友好的错误提示</li>
+                  <li>• 提供重试机制</li>
+                  <li>• 记录错误日志</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Deployment -->
+      <section id="deployment" class="section-anchor mb-16">
+        <h2 class="text-3xl font-bold text-gray-900 mb-8 serif-display">部署与交付</h2>
+
+        <div class="bento-grid mb-8">
+          <div class="bento-item">
+            <h3 class="text-xl font-semibold text-gray-900 mb-4">
+              <i class="fas fa-code text-blue-600 mr-2"></i>
+              前端开发规范
+            </h3>
+            <ul class="space-y-3 text-gray-700">
+              <li class="flex items-start">
+                <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+                <span><strong>Vite开发服务器</strong> - 本地预览和热更新</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+                <span><strong>职责分离</strong> - UI组件仅负责展示和交互</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+                <span><strong>充分验证</strong> - 所有可视化改动必须本地测试</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+                <span><strong>状态管理</strong> - 数据流在hooks/services中处理</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="bento-item">
+            <h3 class="text-xl font-semibold text-gray-900 mb-4">
+              <i class="fas fa-server text-teal-600 mr-2"></i>
+              后端API文档
+            </h3>
+            <ul class="space-y-3 text-gray-700">
+              <li class="flex items-start">
+                <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+                <span><strong>SSE事件结构</strong> - 详细说明所有事件类型和载荷</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+                <span><strong>心跳策略</strong> - 明确心跳间隔和连接状态</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+                <span><strong>错误处理</strong> - 提供客户端处理示例</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+                <span><strong>统一错误格式</strong> - {code, message}结构</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
+          <h3 class="text-2xl font-semibold text-gray-900 mb-6">
+            <i class="fas fa-box text-amber-600 mr-3"></i>
+            依赖管理策略
+          </h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <h4 class="text-lg font-semibold text-gray-900 mb-4 text-red-600">
+                <i class="fas fa-ban mr-2"></i>
+                严禁引入
+              </h4>
+              <ul class="space-y-2 text-gray-700">
+                <li class="flex items-start">
+                  <i class="fas fa-times text-red-500 mr-2 mt-1"></i>
+                  <span>与
+                    <code>sse-starlette</code> 功能冲突的SSE库
+                  </span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-times text-red-500 mr-2 mt-1"></i>
+                  <span>重复的缓存实现库</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-times text-red-500 mr-2 mt-1"></i>
+                  <span>未经验证的大型依赖包</span>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 class="text-lg font-semibold text-gray-900 mb-4 text-green-600">
+                <i class="fas fa-check-circle mr-2"></i>
+                审查要求
+              </h4>
+              <ul class="space-y-2 text-gray-700">
+                <li class="flex items-start">
+                  <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+                  <span>新增依赖的必要性说明</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+                  <span>评估对项目复杂性的影响</span>
+                </li>
+                <li class="flex items-start">
+                  <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+                  <span>考虑安全性和维护成本</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="highlight-box mt-6">
+            <h4 class="font-semibold text-gray-900 mb-2">
+              <i class="fas fa-lightbulb text-amber-500 mr-2"></i>
+              总结
+            </h4>
+            <p class="text-gray-700">
+              本技术规范为AI驱动应用提供了全面的技术实施蓝图.通过严格执行这些标准,我们能够确保系统在实时通信、数据缓存、数据库交互和AI服务集成等关键领域保持高度的一致性、可靠性和性能.这对于约束AI编辑器中的智能体、指导开发实践以及维护长期的技术债务管理都具有重要意义.
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Highlight current section in TOC
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('.section-anchor');
+            const tocLinks = document.querySelectorAll('.toc-fixed a');
+            
+            let currentSection = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (window.scrollY >= sectionTop - 100) {
+                    currentSection = section.getAttribute('id');
+                }
+            });
+
+            tocLinks.forEach(link => {
+                link.classList.remove('text-teal-700', 'font-semibold');
+                link.classList.add('text-gray-600');
+                if (link.getAttribute('href') === `#${currentSection}`) {
+                    link.classList.remove('text-gray-600');
+                    link.classList.add('text-teal-700', 'font-semibold');
+                }
+            });
+        });
+    </script>
+  </body>
+
+</html>
